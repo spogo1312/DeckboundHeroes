@@ -1,0 +1,35 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Heroes and Decks</title>
+    <link rel="stylesheet" href="css/styles.css">
+</head>
+<body>
+    <div id="game-container">
+        <h1>Heroes and Decks</h1>
+        <div id="deck"></div>
+        <div id="battlefield"></div>
+    </div>
+    <div id="character-creation">
+        <h2>Create Your Character</h2>
+        <form id="create-character-form">
+            <label for="name">Name:</label>
+            <input type="text" id="name" name="name"><br>
+            <label for="class">Class:</label>
+            <select id="class" name="class">
+                <option value="Warrior">Warrior</option>
+                <option value="Mage">Mage</option>
+                <option value="Rogue">Rogue</option>
+            </select><br>
+            <button type="submit">Create Character</button>
+        </form>
+    </div>
+    
+    <div id="character-info"></div>
+    
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script> 
+    <script src="js/main.js"></script>
+</body>
+</html>
