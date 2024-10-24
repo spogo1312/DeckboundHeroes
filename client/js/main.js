@@ -1,6 +1,52 @@
 $(document).ready(function () {
     let selectedCards = [];
     let currentStat = null;
+    let selectedRace = null;
+    let selectedClass = null;
+
+    // Handle race selection
+    $('.raceb').click(function () {
+        $('.raceb').removeClass('highlight'); // Remove highlight from all race buttons
+        $(this).addClass('highlight');        // Highlight the clicked race button
+        selectedRace = $(this).data('race');
+    });
+
+    // Handle class selection
+    $('.classb').click(function () {
+        $('.classb').removeClass('highlight'); // Remove highlight from all class buttons
+        $(this).addClass('highlight');         // Highlight the clicked class button
+        selectedClass = $(this).data('class');
+    });
+
+    // Handle character creation form submission
+    $('#create-character-form').submit(function (e) {
+        e.preventDefault();
+
+        let characterData = {
+            name: $('#name').val(),
+            class: selectedClass,
+            race: selectedRace
+        };
+
+        if (!characterData.name || !characterData.class || !characterData.race) {
+            alert("Please fill out all fields and select both a race and a class.");
+            return;
+        }
+
+        // Ensure data is sent and received correctly
+        $.ajax({
+            url: "http://localhost:8080/create-character",
+            type: "POST",
+            contentType: "application/json",
+            data: JSON.stringify(characterData),
+            success: function (character) {
+                if (character && character.stats) {  // Ensure that stats are properly returned
+                    displayCharacterInfo(character);
+                    $('#card-selection').show();
+                    $('#character-creation').remove(); // Remove character creation from DOM to prevent bugs
+                } else {
+                    console.error("Character stats missing from server response.");
+                }
 
     // Function to explain what each stat does when clicked
     function explainStat(statName) {

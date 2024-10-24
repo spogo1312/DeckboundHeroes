@@ -24,23 +24,23 @@
         <form id="create-character-form">
             <label for="name">Name:</label>
             <input type="text" id="name" name="name"><br>
-
-            <label for="class">Class:</label>
-            <select id="class" name="class">
-                <option value="Warrior">Warrior</option>
-                <option value="Mage">Mage</option>
-                <option value="Rogue">Rogue</option>
-            </select><br>
-
-            <label for="race">Race:</label>
-            <select id="race" name="race">
-                <option value="Human">Human</option>
-                <option value="Elf">Elf</option>
-                <option value="Dwarf">Dwarf</option>
-                <option value="Orc">Orc</option>
-                <option value="Gnome">Gnome</option>
-            </select><br>
-
+    
+            <label for="race">Choose a Race:</label>
+            <div class="race-list">
+                <div class="raceb" data-race="Human">Human <i class="fas fa-question-circle info-icon" title="Humans are balanced in all stats."></i></div>
+                <div class="raceb" data-race="Elf">Elf <i class="fas fa-question-circle info-icon" title="Elves are agile and have high dexterity."></i></div>
+                <div class="raceb" data-race="Dwarf">Dwarf <i class="fas fa-question-circle info-icon" title="Dwarves are strong and resilient."></i></div>
+                <div class="raceb" data-race="Orc">Orc <i class="fas fa-question-circle info-icon" title="Orcs are extremely strong but lack intelligence."></i></div>
+                <div class="raceb" data-race="Gnome">Gnome <i class="fas fa-question-circle info-icon" title="Gnomes have high intelligence and perception."></i></div>
+            </div>
+    
+            <label for="class">Choose a Class:</label>
+            <div class="class-list">
+                <div class="classb" data-class="Warrior">Warrior <i class="fas fa-question-circle info-icon" title="Warriors are melee combatants with high strength and endurance."></i></div>
+                <div class="classb" data-class="Mage">Mage <i class="fas fa-question-circle info-icon" title="Mages specialize in spellcasting with high intelligence."></i></div>
+                <div class="classb" data-class="Rogue">Rogue <i class="fas fa-question-circle info-icon" title="Rogues are fast and agile with a focus on dexterity."></i></div>
+            </div>
+    
             <button type="submit">Create Character</button>
         </form>
     </div>
@@ -119,6 +119,9 @@
 
     <!-- Script Links -->
     <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+    <!-- Correct Font Awesome CDN link -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css">
+
     <script src="js/main.js"></script>
 </body>
 </html>

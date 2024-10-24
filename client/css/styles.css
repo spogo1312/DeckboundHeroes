@@ -66,7 +66,7 @@ body {
 }
 
 /* Highlighted stat button */
-.statb.highlight {
+.statb.highlight, .raceb.highlight, .classb.highlight {
     background-color: #4caf50; /* Green highlight */
     color: white;
     border-color: #388e3c;     /* Darker border on highlight */
@@ -82,4 +82,47 @@ body {
 .boost-highlight {
     color: green;
     font-weight: bold;
+}
+/* Grid layout for races and classes */
+.race-list, .class-list {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr); /* Adjust columns as needed */
+    gap: 10px;
+    margin-top: 10px;
+}
+
+.raceb, .classb {
+    background-color: #f0f0f0;
+    border: 2px solid #ccc;
+    padding: 10px;
+    text-align: center;
+    cursor: pointer;
+    border-radius: 8px;
+    transition: background-color 0.3s ease, border-color 0.3s ease;
+    position: relative;
+}
+
+.raceb:hover, .classb:hover {
+    background-color: #e0e0e0;
+    border-color: #888;
+}
+
+.info-icon {
+    margin-left: 5px;
+    color: #555;
+    cursor: pointer;
+}
+
+.info-icon:hover::after {
+    content: attr(title);
+    position: absolute;
+    top: -10px;
+    left: 50%;
+    transform: translateX(-50%);
+    background-color: #333;
+    color: #fff;
+    padding: 5px;
+    border-radius: 5px;
+    white-space: nowrap;
+    font-size: 12px;
 }

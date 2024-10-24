@@ -139,10 +139,13 @@ func calculateStats(character Character) Character {
 	// Set default values for Character
 	character.Level = 1
 	character.XP = 0
-	character.Gold = 100 // Example starting gold
+	character.Gold = 100
 	character.Stats = stats
 	character.Health = stats.Endurance * 10
 	character.Mana = stats.Intelligence * 5
+
+	// Debug to ensure stats are calculated correctly
+	fmt.Printf("Stats calculated for character: %+v\n", character)
 
 	return character
 }
