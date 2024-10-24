@@ -5,8 +5,10 @@ import (
 	"fmt"
 	"io"
 	"log"
+	"math/rand"
 	"net/http"
 	"strings"
+	"time"
 )
 
 type Stats struct {
@@ -47,6 +49,11 @@ func main() {
 
 	fmt.Println("Server running on port 8080")
 	log.Fatal(http.ListenAndServe(":8080", nil))
+}
+
+// Initialize the random seed
+func init() {
+	rand.NewSource(time.Now().UnixNano())
 }
 
 // CORS middleware
@@ -186,6 +193,20 @@ func ApplyStatBoostHandler(w http.ResponseWriter, r *http.Request) {
 	// Respond with the updated character data
 	w.Header().Set("Content-Type", "application/json")
 	json.NewEncoder(w).Encode(player)
+}
+
+func RandomizeCard(w http.ResponseWriter, r *http.Request) {
+	if r.Method != "GET" {
+		http.Error(w, "Invalid request method", http.StatusMethodNotAllowed)
+		return
+	}
+
+	// Randomize a card value between 1 and 4
+	randomCardValue := rand.Intn(4) + 1
+
+	// Send the randomized card value to the frontend
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(randomCardValue)
 }
 
 // Apply stat boost based on the selected stat and card value

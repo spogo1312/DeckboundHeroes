@@ -148,21 +148,32 @@ $(document).ready(function () {
             return;
         }
 
-        const cardValue = $(this).data('value');
-        selectedCards.push(cardValue);
+        // Get random card value from the backend
+        $.ajax({
+            url: "http://localhost:8080/randomize-card",
+            type: "GET",
+            contentType: "application/json",
+            success: function (RandCardValue) {
+                const cardValue = RandCardValue;
+                selectedCards.push(cardValue);
 
-        // Send card and stat to backend
-        sendCardSelection(cardValue, currentStat, function() {
-            highlightStatBoost(currentStat, cardValue); // Highlight the boosted stat
-            // Remove highlight from stat after boost
-            $(`.statb[data-statb='${currentStat}']`).removeClass('highlight');
-            if (selectedCards.length === 1) {
-                $('#step-indicator').text("Choose Your Second Stat");
-                currentStat = null; // Reset current stat for second round
-                $('#card-container').hide();
-            } else if (selectedCards.length === 2) {
-                $('#card-selection').hide();
-                $('#step-indicator').text("Stat boosts applied!");
+                // Send card and stat to backend
+                sendCardSelection(cardValue, currentStat, function() {
+                    highlightStatBoost(currentStat, cardValue); // Highlight the boosted stat
+                    // Remove highlight from stat after boost
+                    $(`.statb[data-statb='${currentStat}']`).removeClass('highlight');
+                    if (selectedCards.length === 1) {
+                        $('#step-indicator').text("Choose Your Second Stat");
+                        currentStat = null; // Reset current stat for second round
+                        $('#card-container').hide();
+                    } else if (selectedCards.length === 2) {
+                        $('#card-selection').hide();
+                        $('#step-indicator').text("Stat boosts applied!");
+                    }
+                });
+            },
+            error: function (xhr, status, error) {
+                console.error("Error getting the randomCardValue:", status, error);
             }
         });
     });
