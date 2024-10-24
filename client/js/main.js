@@ -47,6 +47,12 @@ $(document).ready(function () {
                 } else {
                     console.error("Character stats missing from server response.");
                 }
+            },
+            error: function (xhr, status, error) {
+                console.error("Error creating character:", status, error);
+            }
+        });
+    });
 
     // Function to explain what each stat does when clicked
     function explainStat(statName) {
@@ -80,31 +86,6 @@ $(document).ready(function () {
         alert(explanation); // Show explanation
     }
 
-    // Start the stat boost process when character is created
-    $('#create-character-form').submit(function (e) {
-        e.preventDefault();
-
-        let characterData = {
-            name: $('#name').val(),
-            class: $('#class').val(),
-            race: $('#race').val()
-        };
-
-        $.ajax({
-            url: "http://localhost:8080/create-character",
-            type: "POST",
-            contentType: "application/json",
-            data: JSON.stringify(characterData),
-            success: function (character) {
-                displayCharacterInfo(character);
-                $('#card-selection').show(); // Show the card selection process
-            },
-            error: function (xhr, status, error) {
-                console.error("Error creating character:", status, error);
-            }
-        });
-    });
-
     // Handle stat click for explanation (before boosting)
     $('.stat').click(function () {
         const statName = $(this).data('stat');
@@ -134,6 +115,8 @@ $(document).ready(function () {
         // Send card and stat to backend
         sendCardSelection(cardValue, currentStat, function() {
             highlightStatBoost(currentStat, cardValue); // Highlight the boosted stat
+            // Remove highlight from stat after boost
+            $(`.statb[data-statb='${currentStat}']`).removeClass('highlight');
             if (selectedCards.length === 1) {
                 $('#step-indicator').text("Choose Your Second Stat");
                 currentStat = null; // Reset current stat for second round
