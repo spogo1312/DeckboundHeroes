@@ -79,6 +79,16 @@ body {
     color: green;
     font-weight: bold;
 }
+.floating-boost {
+    position: absolute;
+    font-size: 14px;
+    font-weight: bold;
+    color: green;
+    pointer-events: none;  /* Ensure it doesn't block interactions */
+    z-index: 1000;
+}
+
+
 /* Grid layout for races and classes */
 .race-list, .class-list {
     display: grid;
@@ -109,7 +119,6 @@ body {
     cursor: pointer;
     position: relative;
 }
-
 /* Tooltip styles with a subtle fantasy font */
 .custom-tooltip {
     display: none;
@@ -119,7 +128,8 @@ body {
     padding: 5px;
     border-radius: 5px;
     font-size: 14px;
-    font-family: 'IM Fell English', serif;  /* Fantasy font for tooltip text */
+    font-family: 'IM Fell English', serif;
+    /* Fantasy font for tooltip text */
     z-index: 1000;
     white-space: nowrap;
     box-shadow: 0px 2px 5px rgba(0, 0, 0, 0.2);
@@ -156,6 +166,7 @@ body {
         opacity: 0;
         transform: translateY(10px);
     }
+
     100% {
         opacity: 1;
         transform: translateY(0);

@@ -193,14 +193,40 @@ $(document).ready(function () {
         const originalValue = parseInt(statElement.text());
         const newValue = originalValue + boostValue;
 
-        statElement.text(newValue); // Update stat value
+        // Update the stat value
+        statElement.text(newValue);
 
-        // Highlight the change for a few seconds
+        // Create a floating "+value" element
+        const floatingValue = $(`<span class="floating-boost">+${boostValue}</span>`).appendTo('body');
+
+        // Get the position of the stat element to position the floating value
+        const statOffset = statElement.offset();
+        const statWidth = statElement.outerWidth();
+
+        // Position the floating value slightly above and to the right of the stat
+        floatingValue.css({
+            position: 'absolute',
+            top: statOffset.top - 10, // Slightly above the stat
+            left: statOffset.left + statWidth + 10, // Slightly to the right of the stat
+            fontSize: '14px',
+            color: 'green', // Use green color for the boost
+            fontWeight: 'bold',
+            zIndex: 1000
+        });
+
+        // Animate the floating value upwards and fade out
+        floatingValue.animate({ top: '-=20', opacity: 0 }, 1500, function () {
+            // Remove the floating value after the animation completes
+            $(this).remove();
+        });
+
+        // Highlight the stat change for a few seconds
         statElement.addClass('boost-highlight');
         setTimeout(function () {
             statElement.removeClass('boost-highlight');
         }, 2000); // 2 seconds
     }
+
 
     // Display the character information in appropriate sections
     function displayCharacterInfo(character) {
