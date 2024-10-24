@@ -148,6 +148,9 @@ $(document).ready(function () {
             return;
         }
 
+        // Disable the card buttons to prevent multiple clicks
+        $('.card').prop('disabled', true);
+
         // Get random card value from the backend
         $.ajax({
             url: "http://localhost:8080/randomize-card",
@@ -162,10 +165,13 @@ $(document).ready(function () {
                     highlightStatBoost(currentStat, cardValue); // Highlight the boosted stat
                     // Remove highlight from stat after boost
                     $(`.statb[data-statb='${currentStat}']`).removeClass('highlight');
+                    
+                    // Re-enable the card buttons for the second round (if needed)
                     if (selectedCards.length === 1) {
                         $('#step-indicator').text("Choose Your Second Stat");
                         currentStat = null; // Reset current stat for second round
                         $('#card-container').hide();
+                        $('.card').prop('disabled', false); // Re-enable cards
                     } else if (selectedCards.length === 2) {
                         $('#card-selection').hide();
                         $('#step-indicator').text("Stat boosts applied!");
@@ -174,6 +180,7 @@ $(document).ready(function () {
             },
             error: function (xhr, status, error) {
                 console.error("Error getting the randomCardValue:", status, error);
+                $('.card').prop('disabled', false); // Re-enable if error occurs
             }
         });
     });
@@ -198,22 +205,18 @@ $(document).ready(function () {
         });
     }
 
-    // Highlight the stat that was boosted and update the value in the character overview
     function highlightStatBoost(statName, boostValue) {
         const statElement = $(`#stat-${statName.toLowerCase()}`);
-        const originalValue = parseInt(statElement.text());
-        const newValue = originalValue + boostValue;
-
-        // Update the stat value
-        statElement.text(newValue);
-
+        
+        const currentStatValue = parseInt(statElement.text()); // Get current displayed value
+    
         // Create a floating "+value" element
         const floatingValue = $(`<span class="floating-boost">+${boostValue}</span>`).appendTo('body');
-
+    
         // Get the position of the stat element to position the floating value
         const statOffset = statElement.offset();
         const statWidth = statElement.outerWidth();
-
+    
         // Position the floating value slightly above and to the right of the stat
         floatingValue.css({
             position: 'absolute',
@@ -224,20 +227,19 @@ $(document).ready(function () {
             fontWeight: 'bold',
             zIndex: 1000
         });
-
+    
         // Animate the floating value upwards and fade out
         floatingValue.animate({ top: '-=20', opacity: 0 }, 1500, function () {
             // Remove the floating value after the animation completes
             $(this).remove();
         });
-
+    
         // Highlight the stat change for a few seconds
         statElement.addClass('boost-highlight');
         setTimeout(function () {
             statElement.removeClass('boost-highlight');
         }, 2000); // 2 seconds
     }
-
 
     // Display the character information in appropriate sections
     function displayCharacterInfo(character) {

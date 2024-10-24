@@ -46,6 +46,7 @@ func main() {
 	http.HandleFunc("/create-character", withCORS(CreateCharacterHandler))
 	http.HandleFunc("/character", withCORS(CharacterHandler))
 	http.HandleFunc("/apply-stat-boost", withCORS(ApplyStatBoostHandler))
+	http.HandleFunc("/randomize-card", withCORS(RandomizeCard))
 
 	fmt.Println("Server running on port 8080")
 	log.Fatal(http.ListenAndServe(":8080", nil))
