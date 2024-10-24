@@ -44,10 +44,6 @@ body {
     margin-bottom: 20px;
 }
 
-.stat {
-    cursor: pointer;
-    padding: 5px;
-}
 .stat-list {
     display: grid;
     grid-template-columns: repeat(4, 1fr); /* Creates a 4-column grid */
@@ -106,23 +102,62 @@ body {
     background-color: #e0e0e0;
     border-color: #888;
 }
-
+/* Remove old hover tooltip */
 .info-icon {
     margin-left: 5px;
     color: #555;
     cursor: pointer;
+    position: relative;
 }
 
-.info-icon:hover::after {
-    content: attr(title);
+/* Tooltip styles with a subtle fantasy font */
+.custom-tooltip {
+    display: none;
     position: absolute;
-    top: -10px;
-    left: 50%;
-    transform: translateX(-50%);
     background-color: #333;
     color: #fff;
     padding: 5px;
     border-radius: 5px;
+    font-size: 14px;
+    font-family: 'IM Fell English', serif;  /* Fantasy font for tooltip text */
+    z-index: 1000;
     white-space: nowrap;
-    font-size: 12px;
+    box-shadow: 0px 2px 5px rgba(0, 0, 0, 0.2);
+    text-align: center;
+}
+
+/* Optional arrow for the tooltip */
+.custom-tooltip::before {
+    content: "";
+    position: absolute;
+    top: 50%;
+    left: -5px;
+    transform: translateY(-50%);
+    border-width: 5px;
+    border-style: solid;
+    border-color: transparent #333 transparent transparent;
+}
+
+/* Info icon remains intact and unstyled */
+.info-icon {
+    margin-left: 5px;
+    color: #555;
+    cursor: pointer;
+    position: relative;
+}
+
+/* Tooltip fade-in animation for smoother appearance */
+.custom-tooltip.fade-in {
+    animation: fadeIn 0.3s ease-in-out forwards;
+}
+
+@keyframes fadeIn {
+    0% {
+        opacity: 0;
+        transform: translateY(10px);
+    }
+    100% {
+        opacity: 1;
+        transform: translateY(0);
+    }
 }

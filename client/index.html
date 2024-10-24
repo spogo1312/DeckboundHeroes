@@ -4,13 +4,13 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Heroes and Decks</title>
+    <!-- Correct Font Awesome CDN link -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css">
+    <link href="https://fonts.googleapis.com/css2?family=IM+Fell+English&family=MedievalSharp&display=swap">
     <link rel="stylesheet" href="css/styles.css">
 </head>
 <body>
-    <!-- Gold HUD in the top-left corner -->
-    <div id="gold-hud">
-        Gold: <span id="gold-display">100</span>
-    </div>
+    
 
     <div id="game-container">
         <h1>Heroes and Decks</h1>
@@ -27,26 +27,28 @@
     
             <label for="race">Choose a Race:</label>
             <div class="race-list">
-                <div class="raceb" data-race="Human">Human <i class="fas fa-question-circle info-icon" title="Humans are balanced in all stats."></i></div>
-                <div class="raceb" data-race="Elf">Elf <i class="fas fa-question-circle info-icon" title="Elves are agile and have high dexterity."></i></div>
-                <div class="raceb" data-race="Dwarf">Dwarf <i class="fas fa-question-circle info-icon" title="Dwarves are strong and resilient."></i></div>
-                <div class="raceb" data-race="Orc">Orc <i class="fas fa-question-circle info-icon" title="Orcs are extremely strong but lack intelligence."></i></div>
-                <div class="raceb" data-race="Gnome">Gnome <i class="fas fa-question-circle info-icon" title="Gnomes have high intelligence and perception."></i></div>
+                <div class="raceb" data-race="Human">Human <i class="fas fa-question-circle info-icon" data-info="Humans are balanced in all stats."></i></div>
+                <div class="raceb" data-race="Elf">Elf <i class="fas fa-question-circle info-icon" data-info="Elves are agile and have high dexterity."></i></div>
+                <div class="raceb" data-race="Dwarf">Dwarf <i class="fas fa-question-circle info-icon" data-info="Dwarves are strong and resilient."></i></div>
+                <div class="raceb" data-race="Orc">Orc <i class="fas fa-question-circle info-icon" data-info="Orcs are extremely strong but lack intelligence."></i></div>
+                <div class="raceb" data-race="Gnome">Gnome <i class="fas fa-question-circle info-icon" data-info="Gnomes have high intelligence and perception."></i></div>
             </div>
     
             <label for="class">Choose a Class:</label>
             <div class="class-list">
-                <div class="classb" data-class="Warrior">Warrior <i class="fas fa-question-circle info-icon" title="Warriors are melee combatants with high strength and endurance."></i></div>
-                <div class="classb" data-class="Mage">Mage <i class="fas fa-question-circle info-icon" title="Mages specialize in spellcasting with high intelligence."></i></div>
-                <div class="classb" data-class="Rogue">Rogue <i class="fas fa-question-circle info-icon" title="Rogues are fast and agile with a focus on dexterity."></i></div>
+                <div class="classb" data-class="Warrior">Warrior <i class="fas fa-question-circle info-icon" data-info="Warriors are melee combatants with high strength and endurance."></i></div>
+                <div class="classb" data-class="Mage">Mage <i class="fas fa-question-circle info-icon" data-info="Mages specialize in spellcasting with high intelligence."></i></div>
+                <div class="classb" data-class="Rogue">Rogue <i class="fas fa-question-circle info-icon" data-info="Rogues are fast and agile with a focus on dexterity."></i></div>
             </div>
     
             <button type="submit">Create Character</button>
         </form>
     </div>
 
+
+    <button id="toggle-overview-btn" style="display: none;">Hide Character Overview</button>
     <!-- Character Overview Section -->
-    <div id="character-overview">
+    <div id="character-overview" style="display:none;">
         <!-- Basic Info -->
         <div id="basic-info">
             <h2 id="character-name"></h2>
@@ -54,17 +56,43 @@
         </div>
 
         <!-- Stats Container (Clickable Stats) -->
-        <div id="stats-container">
-            <h3>Stats</h3>
-            <div class="stat" data-stat="Strength">Strength: <span id="stat-strength">0</span></div>
-            <div class="stat" data-stat="Dexterity">Dexterity: <span id="stat-dexterity">0</span></div>
-            <div class="stat" data-stat="Intelligence">Intelligence: <span id="stat-intelligence">0</span></div>
-            <div class="stat" data-stat="Endurance">Endurance: <span id="stat-endurance">0</span></div>
-            <div class="stat" data-stat="Perception">Perception: <span id="stat-perception">0</span></div>
-            <div class="stat" data-stat="Wisdom">Wisdom: <span id="stat-wisdom">0</span></div>
-            <div class="stat" data-stat="Agility">Agility: <span id="stat-agility">0</span></div>
-            <div class="stat" data-stat="Luck">Luck: <span id="stat-luck">0</span></div>
-        </div>
+        <!-- Stats Container (Clickable Stats with Tooltips) -->
+<div id="stats-container">
+    <h3>Stats</h3>
+    <div class="stat" data-stat="Strength">
+        Strength: <span id="stat-strength">0</span>
+        <i class="fas fa-question-circle info-icon" data-info="Strength increases your physical attack damage."></i>
+    </div>
+    <div class="stat" data-stat="Dexterity">
+        Dexterity: <span id="stat-dexterity">0</span>
+        <i class="fas fa-question-circle info-icon" data-info="Dexterity improves your accuracy and evasion."></i>
+    </div>
+    <div class="stat" data-stat="Intelligence">
+        Intelligence: <span id="stat-intelligence">0</span>
+        <i class="fas fa-question-circle info-icon" data-info="Intelligence increases your mana and spell power."></i>
+    </div>
+    <div class="stat" data-stat="Endurance">
+        Endurance: <span id="stat-endurance">0</span>
+        <i class="fas fa-question-circle info-icon" data-info="Endurance increases your health points (HP)."></i>
+    </div>
+    <div class="stat" data-stat="Perception">
+        Perception: <span id="stat-perception">0</span>
+        <i class="fas fa-question-circle info-icon" data-info="Perception improves your ranged attack accuracy."></i>
+    </div>
+    <div class="stat" data-stat="Wisdom">
+        Wisdom: <span id="stat-wisdom">0</span>
+        <i class="fas fa-question-circle info-icon" data-info="Wisdom improves mana regeneration and spell casting."></i>
+    </div>
+    <div class="stat" data-stat="Agility">
+        Agility: <span id="stat-agility">0</span>
+        <i class="fas fa-question-circle info-icon" data-info="Agility increases your movement speed and reflexes."></i>
+    </div>
+    <div class="stat" data-stat="Luck">
+        Luck: <span id="stat-luck">0</span>
+        <i class="fas fa-question-circle info-icon" data-info="Luck increases your critical hit chance and loot quality."></i>
+    </div>
+</div>
+
 
         <!-- Level and XP Container -->
         <div id="level-xp">
@@ -82,6 +110,10 @@
         <div id="armor-weapon">
             <p>Armor: <span id="armor-display">Leather Armor</span></p>
             <p>Weapon: <span id="weapon-display">Wooden Sword</span></p>
+        </div>
+        <!-- Gold HUD in the top-left corner -->
+        <div id="gold-hud">
+            Gold: <span id="gold-display">100</span>
         </div>
     </div>
 
@@ -119,9 +151,6 @@
 
     <!-- Script Links -->
     <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
-    <!-- Correct Font Awesome CDN link -->
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css">
-
     <script src="js/main.js"></script>
 </body>
 </html>

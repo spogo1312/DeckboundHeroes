@@ -1,8 +1,82 @@
 $(document).ready(function () {
+    
+    //#region Tooltip
+    let tooltipTimeout;
+
+    $('.info-icon').hover(function (e) {
+        const $tooltip = $(this);
+        
+        // Clear any previous timeout to prevent multiple tooltips
+        clearTimeout(tooltipTimeout);
+
+        // Delay showing the tooltip by 300ms
+        tooltipTimeout = setTimeout(function () {
+            showTooltip($tooltip, e);
+        }, 300);
+    }, function () {
+        // Clear timeout when the hover ends
+        clearTimeout(tooltipTimeout);
+        hideTooltip($(this));
+    });
+
+    // Function to show the tooltip
+    function showTooltip($icon, event) {
+        const tooltipText = $icon.attr('data-info');
+        const $tooltip = $('<div class="custom-tooltip"></div>').text(tooltipText).appendTo('body');
+
+        // Position the tooltip
+        const iconOffset = $icon.offset();
+        const iconWidth = $icon.outerWidth();
+        const tooltipWidth = $tooltip.outerWidth();
+        const tooltipHeight = $tooltip.outerHeight();
+
+        let top = iconOffset.top - tooltipHeight / 2 + $icon.outerHeight() / 2;
+        let left = iconOffset.left + iconWidth + 10;  // Add some space between the icon and tooltip
+
+        // Ensure tooltip does not go off-screen (right side)
+        if (left + tooltipWidth > $(window).width()) {
+            left = iconOffset.left - tooltipWidth - 10;  // Place it on the left side of the icon
+        }
+
+        // Ensure tooltip does not go off-screen (top/bottom)
+        if (top + tooltipHeight > $(window).height()) {
+            top = $(window).height() - tooltipHeight - 10;
+        } else if (top < 0) {
+            top = 10;
+        }
+
+        $tooltip.css({
+            top: `${top}px`,
+            left: `${left}px`,
+            position: 'absolute',
+            background: '#333',
+            color: '#fff',
+            padding: '5px',
+            borderRadius: '5px',
+            zIndex: 1000,
+            whiteSpace: 'nowrap'
+        }).fadeIn(200);  // Smooth fade-in effect
+    }
+
+    // Function to hide the tooltip
+    function hideTooltip($icon) {
+        $('.custom-tooltip').remove();
+    }
+    //#endregion
+
     let selectedCards = [];
     let currentStat = null;
     let selectedRace = null;
     let selectedClass = null;
+
+
+    // Toggle character overview visibility
+    $('#toggle-overview-btn').click(function () {
+        $('#character-overview').toggle();  // Toggle the visibility of the character overview
+        const isVisible = $('#character-overview').is(':visible');  // Check if it's currently visible
+        $(this).text(isVisible ? 'Hide Character Overview' : 'Show Character Overview');  // Update button text
+    });
+
 
     // Handle race selection
     $('.raceb').click(function () {
@@ -43,7 +117,9 @@ $(document).ready(function () {
                 if (character && character.stats) {  // Ensure that stats are properly returned
                     displayCharacterInfo(character);
                     $('#card-selection').show();
-                    $('#character-creation').remove(); // Remove character creation from DOM to prevent bugs
+                    $('#character-creation').remove();  // Remove character creation from DOM to prevent bugs
+                    $('#character-overview').show();   
+                    $('#toggle-overview-btn').show();
                 } else {
                     console.error("Character stats missing from server response.");
                 }
@@ -54,44 +130,7 @@ $(document).ready(function () {
         });
     });
 
-    // Function to explain what each stat does when clicked
-    function explainStat(statName) {
-        let explanation = '';
-        switch (statName) {
-            case 'Strength':
-                explanation = 'Strength increases your physical attack damage.';
-                break;
-            case 'Dexterity':
-                explanation = 'Dexterity improves your accuracy and evasion.';
-                break;
-            case 'Intelligence':
-                explanation = 'Intelligence increases your mana and spell power.';
-                break;
-            case 'Endurance':
-                explanation = 'Endurance increases your health points (HP).';
-                break;
-            case 'Perception':
-                explanation = 'Perception improves your ranged attack accuracy.';
-                break;
-            case 'Wisdom':
-                explanation = 'Wisdom improves mana regeneration and spell casting.';
-                break;
-            case 'Agility':
-                explanation = 'Agility increases your movement speed and reflexes.';
-                break;
-            case 'Luck':
-                explanation = 'Luck increases your critical hit chance and loot quality.';
-                break;
-        }
-        alert(explanation); // Show explanation
-    }
-
-    // Handle stat click for explanation (before boosting)
-    $('.stat').click(function () {
-        const statName = $(this).data('stat');
-        explainStat(statName);
-    });
-
+    
     // Stat boost process
     $('.statb').click(function () {
         $('.statb').removeClass('highlight'); // Remove highlight from all buttons
