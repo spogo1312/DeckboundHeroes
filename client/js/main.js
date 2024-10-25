@@ -338,3 +338,4 @@ $(document).ready(function () {
         // Gold in HUD
         $('#gold-display').text(character.gold);
     }
+});    
