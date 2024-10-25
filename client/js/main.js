@@ -310,10 +310,9 @@ $(document).ready(function () {
 
     // Display the character information in appropriate sections
     function displayCharacterInfo(character) {
-        // Basic info
         $('#character-name').text(`${character.name}`);
         $('#character-class-race').text(`${character.race} ${character.class}`);
-
+    
         // Stats
         $('#stat-strength').text(character.stats.strength);
         $('#stat-dexterity').text(character.stats.dexterity);
@@ -323,15 +322,15 @@ $(document).ready(function () {
         $('#stat-wisdom').text(character.stats.wisdom);
         $('#stat-agility').text(character.stats.agility);
         $('#stat-luck').text(character.stats.luck);
-
+    
         // Level and XP
         $('#level-display').text(character.level);
         $('#xp-display').text(character.xp);
-
-        // Health and Mana
-        $('#health-display').text(character.health);
-        $('#mana-display').text(character.mana);
-
+    
+        // Health and Mana (display current and max values)
+        $('#health-display').text(`${character.health} / ${character.maxHealth}`);
+        $('#mana-display').text(`${character.mana} / ${character.maxMana}`);
+    
         // Armor and Weapon
         $('#armor-display').text(character.armor);
         $('#weapon-display').text(character.weapon);
@@ -339,4 +338,3 @@ $(document).ready(function () {
         // Gold in HUD
         $('#gold-display').text(character.gold);
     }
-});

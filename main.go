@@ -45,17 +45,19 @@ type Stats struct {
 }
 
 type Character struct {
-	Name   string `json:"name"`
-	Class  string `json:"class"`
-	Race   string `json:"race"`
-	Level  int    `json:"level"`
-	XP     int    `json:"xp"`
-	Health int    `json:"health"`
-	Mana   int    `json:"mana"`
-	Gold   int    `json:"gold"`
-	Armor  string `json:"armor"`
-	Weapon string `json:"weapon"`
-	Stats  Stats  `json:"stats"`
+	Name      string `json:"name"`
+	Class     string `json:"class"`
+	Race      string `json:"race"`
+	Level     int    `json:"level"`
+	XP        int    `json:"xp"`
+	Health    int    `json:"health"`
+	MaxHealth int    `json:"maxHealth"`
+	Mana      int    `json:"mana"`
+	MaxMana   int    `json:"maxMana"`
+	Gold      int    `json:"gold"`
+	Armor     string `json:"armor"`
+	Weapon    string `json:"weapon"`
+	Stats     Stats  `json:"stats"`
 }
 
 var currentEnemy *Enemy
@@ -169,16 +171,15 @@ func calculateStats(character Character) Character {
 		character.Weapon = "Splintered Butter Knife"
 	}
 
-	// Set default values for Character
+	// Set initial health and mana values and their maximums
 	character.Level = 1
 	character.XP = 0
 	character.Gold = 100
 	character.Stats = stats
-	character.Health = stats.Endurance * 10
-	character.Mana = stats.Intelligence * 5
-
-	// Debug to ensure stats are calculated correctly
-	fmt.Printf("Stats calculated for character: %+v\n", character)
+	character.MaxHealth = stats.Endurance * 10
+	character.MaxMana = stats.Intelligence * 5
+	character.Health = character.MaxHealth // Start at full health
+	character.Mana = character.MaxMana     // Start at full mana
 
 	return character
 }
@@ -248,8 +249,20 @@ func applyStatBoost(character *Character, statName string, boost int) {
 		character.Stats.Dexterity += boost
 	case "intelligence":
 		character.Stats.Intelligence += boost
+		// Check if Mana should be restored to new MaxMana only if it was already at MaxMana
+		wasAtMaxMana := character.Mana == character.MaxMana
+		character.MaxMana = character.Stats.Intelligence * 5 // Recalculate MaxMana
+		if wasAtMaxMana {
+			character.Mana = character.MaxMana // Restore to new max only if already at max
+		}
 	case "endurance":
 		character.Stats.Endurance += boost
+		// Check if Health should be restored to new MaxHealth only if it was already at MaxHealth
+		wasAtMaxHealth := character.Health == character.MaxHealth
+		character.MaxHealth = character.Stats.Endurance * 10 // Recalculate MaxHealth
+		if wasAtMaxHealth {
+			character.Health = character.MaxHealth // Restore to new max only if already at max
+		}
 	case "perception":
 		character.Stats.Perception += boost
 	case "wisdom":
@@ -261,6 +274,9 @@ func applyStatBoost(character *Character, statName string, boost int) {
 	default:
 		fmt.Printf("Invalid stat: %s\n", statName) // Debugging invalid stat names
 	}
+
+	// Debug output for tracking max values and current stats
+	fmt.Printf("Updated MaxHealth: %d, Health: %d, MaxMana: %d, Mana: %d\n", character.MaxHealth, character.Health, character.MaxMana, character.Mana)
 }
 
 func CharacterHandler(w http.ResponseWriter, r *http.Request) {
