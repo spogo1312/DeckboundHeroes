@@ -64,6 +64,7 @@ $(document).ready(function () {
     }
     //#endregion
 
+    let playerData = null;
     let selectedCards = [];
     let currentStat = null;
     let selectedRace = null;
@@ -308,8 +309,67 @@ $(document).ready(function () {
         $('#combat-controls').show();
     });
 
+    //#region Save/Load Player
+    $('#save-progress-btn').click(function () {
+        if (playerData) {
+            saveProgress(playerData);
+        } else {
+            alert("No player data available to save.");
+        }
+    });
+    // The saveProgress function
+    function saveProgress(playerData) {
+        $.ajax({
+            url: "http://localhost:8080/save-progress",
+            type: "POST",
+            contentType: "application/json",
+            data: JSON.stringify(playerData),
+            success: function (response) {
+                alert("Progress saved successfully!");
+                console.log(response);
+            },
+            error: function (xhr, status, error) {
+                console.error("Error saving progress:", status, error);
+                alert("Error saving progress.");
+            }
+        });
+    }
+    $('#load-progress-btn').click(function () {
+        // Prompt the user for their character name or retrieve it from stored data
+        let playerName = prompt("Enter your character name to load progress:");
+        if (playerName) {
+            loadProgress(playerName);
+        }
+    });
+    
+    // The loadProgress function
+    function loadProgress(playerName) {
+        $.ajax({
+            url: "http://localhost:8080/load-progress",
+            type: "POST",
+            contentType: "application/json",
+            data: JSON.stringify({ name: playerName }),
+            success: function (loadedPlayerData) {
+                // Update your game state with loadedPlayerData
+                playerData = loadedPlayerData;
+                $('#character-creation').remove();
+                $('#character-overview').show();   
+                $('#toggle-overview-btn').show();
+                $('#start-combat-btn').show();
+                displayCharacterInfo(playerData); // Update the UI
+                alert("Progress loaded successfully!");
+            },
+            error: function (xhr, status, error) {
+                console.error("Error loading progress:", status, error);
+                alert("Error loading progress.");
+            }
+        });
+    }
+    //#endregion
+    
     // Display the character information in appropriate sections
     function displayCharacterInfo(character) {
+        playerData = character;
         $('#character-name').text(`${character.name}`);
         $('#character-class-race').text(`${character.race} ${character.class}`);
     

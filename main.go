@@ -1,6 +1,7 @@
 package main
 
 import (
+	"database/sql"
 	"encoding/json"
 	"fmt"
 	"io"
@@ -9,6 +10,8 @@ import (
 	"net/http"
 	"strings"
 	"time"
+
+	_ "modernc.org/sqlite" // Import the SQLite driver
 )
 
 type Card struct {
@@ -63,6 +66,8 @@ type Character struct {
 var currentEnemy *Enemy
 var player Character
 
+var db *sql.DB
+
 func main() {
 	fs := http.FileServer(http.Dir("./client"))
 	http.Handle("/", fs)
@@ -74,6 +79,8 @@ func main() {
 	http.HandleFunc("/randomize-card", withCORS(RandomizeCard))
 	http.HandleFunc("/start-combat", withCORS(StartCombatHandler))
 	http.HandleFunc("/use-card", withCORS(UseCardHandler))
+	http.HandleFunc("/save-progress", withCORS(SaveProgressHandler))
+	http.HandleFunc("/load-progress", withCORS(LoadProgressHandler))
 
 	fmt.Println("Server running on port 8080")
 	log.Fatal(http.ListenAndServe(":8080", nil))
@@ -82,6 +89,25 @@ func main() {
 // Initialize the random seed
 func init() {
 	rand.NewSource(time.Now().UnixNano())
+	// Open the database connection
+	var err error
+	db, err = sql.Open("sqlite", "./game.db")
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	// Create the players table if it doesn't exist
+	createTableSQL := `
+    CREATE TABLE IF NOT EXISTS players (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        name TEXT NOT NULL UNIQUE,
+        data TEXT NOT NULL
+    );
+    `
+	_, err = db.Exec(createTableSQL)
+	if err != nil {
+		log.Fatal("Failed to create table:", err)
+	}
 }
 
 // CORS middleware
@@ -101,6 +127,114 @@ func withCORS(next http.HandlerFunc) http.HandlerFunc {
 		// Pass the request to the next handler
 		next(w, r)
 	}
+}
+
+func SavePlayerToDB(p Character) error {
+	data, err := json.Marshal(p)
+	if err != nil {
+		return err
+	}
+
+	// Insert or replace the player data
+	query := `
+    INSERT INTO players (name, data) VALUES (?, ?)
+    ON CONFLICT(name) DO UPDATE SET data=excluded.data;
+    `
+	_, err = db.Exec(query, p.Name, string(data))
+	return err
+}
+
+func LoadPlayerFromDB(name string) (Character, error) {
+	var p Character
+	query := `SELECT data FROM players WHERE name = ?;`
+	row := db.QueryRow(query, name)
+
+	var data string
+	err := row.Scan(&data)
+	if err != nil {
+		return p, err
+	}
+
+	err = json.Unmarshal([]byte(data), &p)
+	return p, err
+}
+
+func SaveProgressHandler(w http.ResponseWriter, r *http.Request) {
+	if r.Method != "POST" {
+		http.Error(w, "Invalid request method", http.StatusMethodNotAllowed)
+		return
+	}
+
+	// Read the request body
+	body, err := io.ReadAll(r.Body)
+	if err != nil {
+		http.Error(w, "Can't read body", http.StatusBadRequest)
+		return
+	}
+
+	// Unmarshal the request body into a Character struct
+	var receivedPlayer Character
+	err = json.Unmarshal(body, &receivedPlayer)
+	if err != nil {
+		http.Error(w, "Invalid input", http.StatusBadRequest)
+		return
+	}
+
+	// Save the player data to the database
+	err = SavePlayerToDB(receivedPlayer)
+	if err != nil {
+		http.Error(w, "Error saving progress", http.StatusInternalServerError)
+		return
+	}
+
+	w.WriteHeader(http.StatusOK)
+	w.Write([]byte("Progress saved successfully"))
+}
+
+func LoadProgressHandler(w http.ResponseWriter, r *http.Request) {
+	if r.Method != "GET" && r.Method != "POST" {
+		http.Error(w, "Invalid request method", http.StatusMethodNotAllowed)
+		return
+	}
+
+	// For simplicity, we'll accept the player name in the request body for POST method
+	var requestData struct {
+		Name string `json:"name"`
+	}
+
+	if r.Method == "POST" {
+		err := json.NewDecoder(r.Body).Decode(&requestData)
+		if err != nil {
+			http.Error(w, "Invalid input", http.StatusBadRequest)
+			return
+		}
+	} else {
+		// For GET requests, get the name from the query parameter
+		requestData.Name = r.URL.Query().Get("name")
+	}
+
+	if requestData.Name == "" {
+		http.Error(w, "Player name is required", http.StatusBadRequest)
+		return
+	}
+
+	// Load the player data from the database
+	loadedPlayer, err := LoadPlayerFromDB(requestData.Name)
+	if err != nil {
+		if err == sql.ErrNoRows {
+			http.Error(w, "Player not found", http.StatusNotFound)
+		} else {
+			http.Error(w, "Error loading progress", http.StatusInternalServerError)
+		}
+		return
+	}
+
+	// Update the global player variable
+	player = loadedPlayer
+
+	// Send the player data back to the client
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(player)
 }
 
 // Modify the CreateCharacterHandler to accept input
@@ -129,6 +263,13 @@ func CreateCharacterHandler(w http.ResponseWriter, r *http.Request) {
 	newCharacter = calculateStats(newCharacter)
 
 	player = newCharacter
+
+	// Save the new character to the database
+	err = SavePlayerToDB(player)
+	if err != nil {
+		http.Error(w, "Error saving new character", http.StatusInternalServerError)
+		return
+	}
 
 	// Set default values and initialize the character
 	w.Header().Set("Content-Type", "application/json")
