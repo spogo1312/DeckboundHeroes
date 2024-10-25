@@ -112,6 +112,17 @@ body {
     background-color: #e0e0e0;
     border-color: #888;
 }
+
+#combat-log {
+    margin-top: 10px;
+    max-height: 150px;
+    overflow-y: auto;
+    border: 1px solid #ccc;
+    padding: 10px;
+    font-family: 'IM Fell English', serif;
+}
+
+
 /* Remove old hover tooltip */
 .info-icon {
     margin-left: 5px;

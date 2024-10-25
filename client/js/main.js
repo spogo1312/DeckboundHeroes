@@ -120,6 +120,8 @@ $(document).ready(function () {
                     $('#character-creation').remove();  // Remove character creation from DOM to prevent bugs
                     $('#character-overview').show();   
                     $('#toggle-overview-btn').show();
+                    $('#start-combat-btn').show();
+                    
                 } else {
                     console.error("Character stats missing from server response.");
                 }
@@ -240,6 +242,71 @@ $(document).ready(function () {
             statElement.removeClass('boost-highlight');
         }, 2000); // 2 seconds
     }
+
+    let combatInProgress = false; // Track if combat is ongoing
+
+    // Display the HP of player and enemy
+    function updateHPDisplay(playerHP, enemyHP) {
+        $('#player-hp').text(playerHP);
+        $('#enemy-hp').text(enemyHP);
+    }
+
+    // Function to handle each combat round based on the player's action
+    function executeCombatRound(action) {
+        if (!combatInProgress) {
+            alert("Combat has ended.");
+            return;
+        }
+
+        $.ajax({
+            url: "http://localhost:8080/start-combat", // Modify endpoint if needed
+            type: "POST",
+            contentType: "application/json",
+            data: JSON.stringify({ action: action }), // Send selected action to backend
+            success: function (response) {
+                updateCombatLog(response.result);
+                updateHPDisplay(response.playerHP, response.enemyHP);
+                displayCharacterInfo(response.player);
+
+                // Check if combat is over
+                if (response.combatOver) {
+                    combatInProgress = false;
+                    $('#attack-btn, #use-card-btn').prop('disabled', true); // Disable buttons
+                }
+            },
+            error: function (xhr, status, error) {
+                console.error("Error processing combat round:", status, error);
+            }
+        });
+    }
+
+    // Action buttons for combat
+    $('#attack-btn').click(function () {
+        executeCombatRound("attack");
+    });
+
+    $('#use-card-btn').click(function () {
+        executeCombatRound("card"); // Assuming "card" will prompt the player to select a card in the next steps
+    });
+
+    // Update combat log with each round result
+    function updateCombatLog(message) {
+        const logEntry = $('<p></p>').text(message);
+        $('#combat-log').append(logEntry);
+    }
+
+    // Start combat and initialize values
+    function startCombat() {
+        combatInProgress = true;
+        $('#attack-btn, #use-card-btn').prop('disabled', false); // Enable action buttons
+        executeCombatRound("start");
+    }
+
+    // Attach the combat start function
+    $('#start-combat-btn').click(function () {
+        startCombat();
+        $('#combat-controls').show();
+    });
 
     // Display the character information in appropriate sections
     function displayCharacterInfo(character) {
