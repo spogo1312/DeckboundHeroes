@@ -19,6 +19,7 @@ type Card struct {
 	Name       string `json:"name"`
 	Damage     int    `json:"damage"`
 	ManaCost   int    `json:"manaCost"`
+	Heal       int    `json:"heal"`
 	HealthCost int    `json:"healthCost"`
 	Type       string `json:"type"` // e.g., "spell" or "attack"
 	Effect     string `json:"effect"`
@@ -425,53 +426,54 @@ func CharacterHandler(w http.ResponseWriter, r *http.Request) {
 	json.NewEncoder(w).Encode(player)
 }
 
-func CombatRound(player *Character, enemy *Enemy) map[string]interface{} {
-	// Player attacks first
-	playerAttack := player.Stats.Strength * 2
-	enemy.Health -= playerAttack
-	result := fmt.Sprintf("Player attacks %s for %d damage!", enemy.Name, playerAttack)
+func CombatRound(player *Character, enemy *Enemy, action string, card *Card) map[string]interface{} {
 
-	// Check if enemy is defeated
-	if enemy.Health <= 0 {
-		result += fmt.Sprintf(" %s defeated! You gain %d XP.", enemy.Name, enemy.ExperienceReward)
-		player.XP += enemy.ExperienceReward
-		currentEnemy = nil // Reset for new encounter
-		return map[string]interface{}{
-			"result":     result,
-			"playerHP":   player.Health,
-			"enemyHP":    enemy.Health,
-			"player":     player,
-			"combatOver": true,
+	var result string
+
+	if action == "attack" {
+		// Basic Attack
+		playerAttack := player.Stats.Strength * 2 // Example strength-based attack
+		enemy.Health -= playerAttack
+		result = fmt.Sprintf("Player attacks %s for %d damage!", enemy.Name, playerAttack)
+	} else if action == "castSpell" && card != nil {
+		// Spell Casting
+		if player.Mana >= card.ManaCost { // Check if player has enough mana
+			player.Mana -= card.ManaCost
+			enemy.Health -= card.Damage // Damage is based on card stats
+			player.Health = player.Health + card.Heal
+			if player.Health > player.MaxHealth {
+				player.Health = player.MaxHealth
+			}
+			result = fmt.Sprintf("Player casts %s on %s for %d damage!", card.Name, enemy.Name, card.Damage)
+		} else {
+			result = "Not enough mana to cast this spell."
 		}
 	}
 
-	// Enemy's turn
-	enemyAttack := enemy.Strength * 2
-	player.Health -= enemyAttack
-	result += fmt.Sprintf(" %s attacks player for %d damage!", enemy.Name, enemyAttack)
+	// Enemy's turn to attack if still alive
+	if enemy.Health > 0 {
+		enemyAttack := enemy.Strength * 2 // Basic enemy attack logic
+		player.Health -= enemyAttack
+		result += fmt.Sprintf(" %s counterattacks for %d damage!", enemy.Name, enemyAttack)
+	} else if enemy.Health <= 0 {
+		result += fmt.Sprintf(" %s defeated! You gain %d XP.", enemy.Name, enemy.ExperienceReward)
+		player.XP += enemy.ExperienceReward
+		currentEnemy = nil // Reset for new encounter
+	}
 
 	// Check if player is defeated
 	if player.Health <= 0 {
 		result += " Player defeated! Game over."
-		return map[string]interface{}{
-			"result":     result,
-			"playerHP":   player.Health,
-			"enemyHP":    enemy.Health,
-			"player":     player,
-			"combatOver": true,
-		}
 	}
 
-	// Return ongoing combat status
 	return map[string]interface{}{
 		"result":     result,
 		"playerHP":   player.Health,
 		"enemyHP":    enemy.Health,
-		"player":     player,
-		"combatOver": false,
+		"playerMana": player.Mana,
+		"combatOver": player.Health <= 0 || enemy.Health <= 0,
 	}
 }
-
 func StartCombatHandler(w http.ResponseWriter, r *http.Request) {
 	if r.Method != "POST" {
 		http.Error(w, "Invalid request method", http.StatusMethodNotAllowed)
@@ -496,6 +498,7 @@ func StartCombatHandler(w http.ResponseWriter, r *http.Request) {
 	// Decode action from the request
 	var actionData struct {
 		Action string `json:"action"`
+		CardID int    `json:"cardId"` // Add CardID for spell casting if needed
 	}
 	err := json.NewDecoder(r.Body).Decode(&actionData)
 	if err != nil {
@@ -505,12 +508,15 @@ func StartCombatHandler(w http.ResponseWriter, r *http.Request) {
 
 	// Execute round based on action
 	var response map[string]interface{}
-	if actionData.Action == "attack" {
-		response = CombatRound(&player, currentEnemy)
-	} else if actionData.Action == "card" {
-		// Placeholder for card-based attack logic
-		// e.g., response = UseCardRound(&player, currentEnemy)
-	} else if actionData.Action == "start" {
+	switch actionData.Action {
+	case "attack":
+		response = CombatRound(&player, currentEnemy, "attack", nil)
+	case "castSpell":
+		// Retrieve the selected card if a spell is cast
+		card := getCardByID(actionData.CardID) // Implement getCardByID to fetch the card
+		response = CombatRound(&player, currentEnemy, "castSpell", card)
+	case "start":
+		// Reset the enemy and start combat
 		currentEnemy = &Enemy{
 			Name:             "Goblin",
 			Health:           30,
@@ -534,6 +540,27 @@ func StartCombatHandler(w http.ResponseWriter, r *http.Request) {
 	// Send response to frontend
 	w.Header().Set("Content-Type", "application/json")
 	json.NewEncoder(w).Encode(response)
+}
+
+// Example helper function to retrieve a card by ID (implement this based on your card management)
+func getCardByID(cardID int) *Card {
+	// Sample card data; replace this with a database query or other storage retrieval as needed
+	cards := []Card{
+		{ID: 1, Name: "Fireball", Damage: 10, ManaCost: 5, Type: "spell", Effect: "Burns the enemy for extra damage"},
+		{ID: 2, Name: "Ice Shard", Damage: 8, ManaCost: 4, Type: "spell", Effect: "Freezes the enemy, reducing speed"},
+		{ID: 3, Name: "Healing Light", Damage: 0, ManaCost: 6, Heal: 15, Type: "spell", Effect: "Heals the player"},
+		{ID: 4, Name: "Shadow Strike", Damage: 12, ManaCost: 7, Type: "attack", Effect: "Deals high damage with a chance to stun"},
+	}
+
+	// Search for the card with the matching ID
+	for _, card := range cards {
+		if card.ID == cardID {
+			return &card
+		}
+	}
+
+	// Return nil if no card with the specified ID is found
+	return nil
 }
 
 func UseCardHandler(w http.ResponseWriter, r *http.Request) {

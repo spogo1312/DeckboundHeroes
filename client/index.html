@@ -19,6 +19,14 @@
         <button id="save-progress-btn">Save Progress</button>
         <button id="load-progress-btn">Load Progress</button>
     </div>
+    <div id="deck-building">
+        <h2>Build Your Deck</h2>
+        <div id="deck-builder"></div>
+    </div>
+    
+    
+    
+    
 
     <!-- Character Creation Section -->
     <div id="character-creation">
@@ -127,7 +135,12 @@
             <p>Enemy HP: <span id="enemy-hp">100</span></p>
         </div>
         <button id="attack-btn">Attack</button>
-        <button id="use-card-btn">Use Card</button>
+        <button id="select-card-btn">Select Card </button>
+        <div id="combat-hand" style="display: none;">
+            <h3>Your Cards</h3>
+            <button id="use-card-btn">Use Card</button>
+            <div id="combat-cards"></div>
+        </div>
         <div id="combat-log"></div> <!-- Display combat updates here -->
     </div>
 
@@ -155,10 +168,10 @@
         <div id="card-container" style="display:none;">
             <p>Select a card to boost the chosen stat:</p>
             <div class="card-container">
-                <button class="card" data-value="1">Card 1</button>
-                <button class="card" data-value="2">Card 2</button>
-                <button class="card" data-value="3">Card 3</button>
-                <button class="card" data-value="4">Card 4</button>
+                <button class="stat-card" data-value="1">Card 1</button>
+                <button class="stat-card" data-value="2">Card 2</button>
+                <button class="stat-card" data-value="3">Card 3</button>
+                <button class="stat-card" data-value="4">Card 4</button>
             </div>
         </div>
     </div>

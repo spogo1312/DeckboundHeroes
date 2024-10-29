@@ -1,44 +1,34 @@
 $(document).ready(function () {
-    
+
     //#region Tooltip
     let tooltipTimeout;
 
     $('.info-icon').hover(function (e) {
         const $tooltip = $(this);
-        
-        // Clear any previous timeout to prevent multiple tooltips
         clearTimeout(tooltipTimeout);
 
-        // Delay showing the tooltip by 300ms
         tooltipTimeout = setTimeout(function () {
             showTooltip($tooltip, e);
         }, 300);
     }, function () {
-        // Clear timeout when the hover ends
         clearTimeout(tooltipTimeout);
         hideTooltip($(this));
     });
 
-    // Function to show the tooltip
     function showTooltip($icon, event) {
         const tooltipText = $icon.attr('data-info');
         const $tooltip = $('<div class="custom-tooltip"></div>').text(tooltipText).appendTo('body');
-
-        // Position the tooltip
         const iconOffset = $icon.offset();
         const iconWidth = $icon.outerWidth();
         const tooltipWidth = $tooltip.outerWidth();
         const tooltipHeight = $tooltip.outerHeight();
 
         let top = iconOffset.top - tooltipHeight / 2 + $icon.outerHeight() / 2;
-        let left = iconOffset.left + iconWidth + 10;  // Add some space between the icon and tooltip
+        let left = iconOffset.left + iconWidth + 10;
 
-        // Ensure tooltip does not go off-screen (right side)
         if (left + tooltipWidth > $(window).width()) {
-            left = iconOffset.left - tooltipWidth - 10;  // Place it on the left side of the icon
+            left = iconOffset.left - tooltipWidth - 10;
         }
-
-        // Ensure tooltip does not go off-screen (top/bottom)
         if (top + tooltipHeight > $(window).height()) {
             top = $(window).height() - tooltipHeight - 10;
         } else if (top < 0) {
@@ -55,48 +45,33 @@ $(document).ready(function () {
             borderRadius: '5px',
             zIndex: 1000,
             whiteSpace: 'nowrap'
-        }).fadeIn(200);  // Smooth fade-in effect
+        }).fadeIn(200);
     }
 
-    // Function to hide the tooltip
     function hideTooltip($icon) {
         $('.custom-tooltip').remove();
     }
-    //#endregion
+    //#endregion Tooltip
 
+    //#region Character Creation
     let playerData = null;
-    let selectedCards = [];
-    let currentStat = null;
     let selectedRace = null;
     let selectedClass = null;
 
-
-    // Toggle character overview visibility
-    $('#toggle-overview-btn').click(function () {
-        $('#character-overview').toggle();  // Toggle the visibility of the character overview
-        const isVisible = $('#character-overview').is(':visible');  // Check if it's currently visible
-        $(this).text(isVisible ? 'Hide Character Overview' : 'Show Character Overview');  // Update button text
-    });
-
-
-    // Handle race selection
     $('.raceb').click(function () {
-        $('.raceb').removeClass('highlight'); // Remove highlight from all race buttons
-        $(this).addClass('highlight');        // Highlight the clicked race button
+        $('.raceb').removeClass('highlight');
+        $(this).addClass('highlight');
         selectedRace = $(this).data('race');
     });
 
-    // Handle class selection
     $('.classb').click(function () {
-        $('.classb').removeClass('highlight'); // Remove highlight from all class buttons
-        $(this).addClass('highlight');         // Highlight the clicked class button
+        $('.classb').removeClass('highlight');
+        $(this).addClass('highlight');
         selectedClass = $(this).data('class');
     });
 
-    // Handle character creation form submission
     $('#create-character-form').submit(function (e) {
         e.preventDefault();
-
         let characterData = {
             name: $('#name').val(),
             class: selectedClass,
@@ -108,21 +83,19 @@ $(document).ready(function () {
             return;
         }
 
-        // Ensure data is sent and received correctly
         $.ajax({
             url: "http://localhost:8080/create-character",
             type: "POST",
             contentType: "application/json",
             data: JSON.stringify(characterData),
             success: function (character) {
-                if (character && character.stats) {  // Ensure that stats are properly returned
+                if (character && character.stats) {
                     displayCharacterInfo(character);
-                    $('#card-selection').show();
-                    $('#character-creation').remove();  // Remove character creation from DOM to prevent bugs
-                    $('#character-overview').show();   
-                    $('#toggle-overview-btn').show();
-                    $('#start-combat-btn').show();
-                    
+                    $("#card-selection").show();
+                    $("#character-creation").remove();
+                    $("#character-overview").show();
+                    $("#toggle-overview-btn").show();
+                    $("#start-combat-btn").show();
                 } else {
                     console.error("Character stats missing from server response.");
                 }
@@ -132,147 +105,131 @@ $(document).ready(function () {
             }
         });
     });
+    //#endregion Character Creation
 
-    
-    // Stat boost process
-    $('.statb').click(function () {
-        $('.statb').removeClass('highlight'); // Remove highlight from all buttons
-        $(this).addClass('highlight');        // Highlight the clicked button
-        currentStat = $(this).data('statb');  // Store selected stat
-        $('#step-indicator').text(`Choose a card to boost ${currentStat}`);
-        $('#card-container').show();          // Show the card selection after selecting stat
-    });
-    
+    //#region Deck Building
+    let playerDeck = [];
 
-    // Handle card selection (boost stat based on selected card)
-    $('.card').click(function () {
-        if (!currentStat) {
-            alert("Please select a stat first.");
-            return;
+    function generateBuildDeck() {
+        const cards = [
+            { id: 1, name: "Fireball", damage: 10, manaCost: 5 },
+            { id: 2, name: "Ice Shard", damage: 8, manaCost: 4 },
+            { id: 3, name: "Healing Light", heal: 15, manaCost: 6 },
+            { id: 4, name: "Shadow Strike", damage: 12, manaCost: 7 }
+        ];
+
+        $('#deck-builder').empty();
+        cards.forEach(card => {
+            const cardElement = $(`
+                <div class="card" data-id="${card.id}">
+                    <h3>${card.name}</h3>
+                    <p>${card.damage ? `Damage: ${card.damage}` : `Heal: ${card.heal}`}</p>
+                    <p>Mana Cost: ${card.manaCost}</p>
+                    <button class="add-to-deck">Add to Deck</button>
+                </div>
+            `);
+
+            $('#deck-builder').append(cardElement);
+        });
+    }
+
+    $(document).on('click', '.add-to-deck', function () {
+        const cardId = $(this).closest('.card').data('id');
+        const cardName = $(this).siblings('h3').text();
+
+        if (playerDeck.includes(cardId)) {
+            playerDeck = playerDeck.filter(id => id !== cardId);
+            $(this).text('Add to Deck');
+            alert(`${cardName} removed from deck`);
+        } else {
+            playerDeck.push(cardId);
+            $(this).text('Remove from Deck');
+            alert(`${cardName} added to deck`);
         }
+    });
+    generateBuildDeck();
+    //#endregion Deck Building
 
-        // Disable the card buttons to prevent multiple clicks
-        $('.card').prop('disabled', true);
+    //#region Combat
+    let combatInProgress = false;
 
-        // Get random card value from the backend
-        $.ajax({
-            url: "http://localhost:8080/randomize-card",
-            type: "GET",
-            contentType: "application/json",
-            success: function (RandCardValue) {
-                const cardValue = RandCardValue;
-                selectedCards.push(cardValue);
+    function startCombat() {
+        combatInProgress = true;
+        $('#attack-btn, #select-card-btn, #use-card-btn').prop('disabled', false);
+        executeCombatRound("start");
+    }
 
-                // Send card and stat to backend
-                sendCardSelection(cardValue, currentStat, function() {
-                    highlightStatBoost(currentStat, cardValue); // Highlight the boosted stat
-                    // Remove highlight from stat after boost
-                    $(`.statb[data-statb='${currentStat}']`).removeClass('highlight');
-                    
-                    // Re-enable the card buttons for the second round (if needed)
-                    if (selectedCards.length === 1) {
-                        $('#step-indicator').text("Choose Your Second Stat");
-                        currentStat = null; // Reset current stat for second round
-                        $('#card-container').hide();
-                        $('.card').prop('disabled', false); // Re-enable cards
-                    } else if (selectedCards.length === 2) {
-                        $('#card-selection').hide();
-                        $('#step-indicator').text("Stat boosts applied!");
-                    }
-                });
-            },
-            error: function (xhr, status, error) {
-                console.error("Error getting the randomCardValue:", status, error);
-                $('.card').prop('disabled', false); // Re-enable if error occurs
-            }
-        });
+    $('#start-combat-btn').click(function () {
+        startCombat();
+        $('#combat-controls').show();
     });
 
-    // Send the selected card and stat to the backend to apply the boost
-    function sendCardSelection(card, chosenStat, callback) {
-        $.ajax({
-            url: "http://localhost:8080/apply-stat-boost",
-            type: "POST",
-            contentType: "application/json",
-            data: JSON.stringify({
-                card: card,
-                chosenStat: chosenStat
-            }),
-            success: function (updatedCharacter) {
-                displayCharacterInfo(updatedCharacter);
-                callback(); // Proceed to next step
-            },
-            error: function (xhr, status, error) {
-                console.error("Error applying stat boost:", status, error);
-            }
+    // Show cards for selection when "Select Card" is clicked
+    $('#select-card-btn').click(function () {
+        $('#combat-hand').show();
+        generateCombatHand();
+    });
+
+    function generateCombatHand() {
+        $('#combat-cards').empty();
+        playerDeck.forEach(cardId => {
+            const card = getCardById(cardId);
+            const cardElement = $(`
+                <div class="card" data-id="${card.id}">
+                    <h3>${card.name}</h3>
+                    <p>${card.damage ? `Damage: ${card.damage}` : `Heal: ${card.heal}`}</p>
+                    <p>Mana Cost: ${card.manaCost}</p>
+                </div>
+            `);
+
+            $('#combat-cards').append(cardElement);
         });
     }
 
-    function highlightStatBoost(statName, boostValue) {
-        const statElement = $(`#stat-${statName.toLowerCase()}`);
-        
-        const currentStatValue = parseInt(statElement.text()); // Get current displayed value
-    
-        // Create a floating "+value" element
-        const floatingValue = $(`<span class="floating-boost">+${boostValue}</span>`).appendTo('body');
-    
-        // Get the position of the stat element to position the floating value
-        const statOffset = statElement.offset();
-        const statWidth = statElement.outerWidth();
-    
-        // Position the floating value slightly above and to the right of the stat
-        floatingValue.css({
-            position: 'absolute',
-            top: statOffset.top - 10, // Slightly above the stat
-            left: statOffset.left + statWidth + 10, // Slightly to the right of the stat
-            fontSize: '14px',
-            color: 'green', // Use green color for the boost
-            fontWeight: 'bold',
-            zIndex: 1000
-        });
-    
-        // Animate the floating value upwards and fade out
-        floatingValue.animate({ top: '-=20', opacity: 0 }, 1500, function () {
-            // Remove the floating value after the animation completes
-            $(this).remove();
-        });
-    
-        // Highlight the stat change for a few seconds
-        statElement.addClass('boost-highlight');
-        setTimeout(function () {
-            statElement.removeClass('boost-highlight');
-        }, 2000); // 2 seconds
-    }
+    $(document).on('click', '#combat-cards .card', function () {
+        $('#combat-cards .card').removeClass('selected');
+        $(this).addClass('selected');
+    });
 
-    let combatInProgress = false; // Track if combat is ongoing
+    $('#attack-btn').click(function () {
+        executeCombatRound("attack");
+    });
 
-    // Display the HP of player and enemy
-    function updateHPDisplay(playerHP, enemyHP) {
-        $('#player-hp').text(playerHP);
-        $('#enemy-hp').text(enemyHP);
-    }
+    $('#use-card-btn').click(function () {
+        const selectedCardId = getSelectedCardId();
+        if (selectedCardId) {
+            executeCombatRound("castSpell", selectedCardId);
+        } else {
+            alert("Please select a card to cast a spell.");
+        }
+    });
 
-    // Function to handle each combat round based on the player's action
-    function executeCombatRound(action) {
+    function executeCombatRound(action, cardId = null) {
         if (!combatInProgress) {
             alert("Combat has ended.");
             return;
         }
 
+        const requestData = { action: action };
+        if (cardId) {
+            requestData.cardId = cardId;
+        }
+
         $.ajax({
-            url: "http://localhost:8080/start-combat", // Modify endpoint if needed
+            url: "http://localhost:8080/start-combat",
             type: "POST",
             contentType: "application/json",
-            data: JSON.stringify({ action: action }), // Send selected action to backend
+            data: JSON.stringify(requestData),
             success: function (response) {
                 updateCombatLog(response.result);
                 updateHPDisplay(response.playerHP, response.enemyHP);
-                displayCharacterInfo(response.player);
+                updateManaDisplay(response.playerMana);
 
-                // Check if combat is over
                 if (response.combatOver) {
                     combatInProgress = false;
-                    $('#attack-btn, #use-card-btn').prop('disabled', true); // Disable buttons
+                    $('#attack-btn, #use-card-btn, #select-card-btn').prop('disabled', true);
+                    $('#combat-hand').hide();
+                    alert("Combat has ended!");
                 }
             },
             error: function (xhr, status, error) {
@@ -281,35 +238,36 @@ $(document).ready(function () {
         });
     }
 
-    // Action buttons for combat
-    $('#attack-btn').click(function () {
-        executeCombatRound("attack");
-    });
+    function getSelectedCardId() {
+        return $('#combat-cards .card.selected').data('id');
+    }
 
-    $('#use-card-btn').click(function () {
-        executeCombatRound("card"); // Assuming "card" will prompt the player to select a card in the next steps
-    });
-
-    // Update combat log with each round result
     function updateCombatLog(message) {
         const logEntry = $('<p></p>').text(message);
         $('#combat-log').append(logEntry);
     }
 
-    // Start combat and initialize values
-    function startCombat() {
-        combatInProgress = true;
-        $('#attack-btn, #use-card-btn').prop('disabled', false); // Enable action buttons
-        executeCombatRound("start");
+    function updateHPDisplay(playerHP, enemyHP) {
+        $('#player-hp').text(playerHP);
+        $('#enemy-hp').text(enemyHP);
     }
 
-    // Attach the combat start function
-    $('#start-combat-btn').click(function () {
-        startCombat();
-        $('#combat-controls').show();
-    });
+    function updateManaDisplay(playerMana) {
+        $('#mana-display').text(playerMana);
+    }
 
-    //#region Save/Load Player
+    function getCardById(id) {
+        const cards = [
+            { id: 1, name: "Fireball", damage: 10, manaCost: 5 },
+            { id: 2, name: "Ice Shard", damage: 8, manaCost: 4 },
+            { id: 3, name: "Healing Light", heal: 15, manaCost: 6 },
+            { id: 4, name: "Shadow Strike", damage: 12, manaCost: 7 }
+        ];
+        return cards.find(card => card.id === id);
+    }
+    //#endregion Combat
+
+    //#region Save/Load Progress
     $('#save-progress-btn').click(function () {
         if (playerData) {
             saveProgress(playerData);
@@ -317,7 +275,7 @@ $(document).ready(function () {
             alert("No player data available to save.");
         }
     });
-    // The saveProgress function
+
     function saveProgress(playerData) {
         $.ajax({
             url: "http://localhost:8080/save-progress",
@@ -334,15 +292,14 @@ $(document).ready(function () {
             }
         });
     }
+
     $('#load-progress-btn').click(function () {
-        // Prompt the user for their character name or retrieve it from stored data
         let playerName = prompt("Enter your character name to load progress:");
         if (playerName) {
             loadProgress(playerName);
         }
     });
-    
-    // The loadProgress function
+
     function loadProgress(playerName) {
         $.ajax({
             url: "http://localhost:8080/load-progress",
@@ -350,13 +307,12 @@ $(document).ready(function () {
             contentType: "application/json",
             data: JSON.stringify({ name: playerName }),
             success: function (loadedPlayerData) {
-                // Update your game state with loadedPlayerData
                 playerData = loadedPlayerData;
                 $('#character-creation').remove();
-                $('#character-overview').show();   
+                $('#character-overview').show();
                 $('#toggle-overview-btn').show();
                 $('#start-combat-btn').show();
-                displayCharacterInfo(playerData); // Update the UI
+                displayCharacterInfo(playerData);
                 alert("Progress loaded successfully!");
             },
             error: function (xhr, status, error) {
@@ -365,15 +321,14 @@ $(document).ready(function () {
             }
         });
     }
-    //#endregion
-    
-    // Display the character information in appropriate sections
+    //#endregion Save/Load Progress
+
+    //#region Character Info Display
     function displayCharacterInfo(character) {
         playerData = character;
         $('#character-name').text(`${character.name}`);
         $('#character-class-race').text(`${character.race} ${character.class}`);
     
-        // Stats
         $('#stat-strength').text(character.stats.strength);
         $('#stat-dexterity').text(character.stats.dexterity);
         $('#stat-intelligence').text(character.stats.intelligence);
@@ -383,19 +338,16 @@ $(document).ready(function () {
         $('#stat-agility').text(character.stats.agility);
         $('#stat-luck').text(character.stats.luck);
     
-        // Level and XP
         $('#level-display').text(character.level);
         $('#xp-display').text(character.xp);
     
-        // Health and Mana (display current and max values)
         $('#health-display').text(`${character.health} / ${character.maxHealth}`);
         $('#mana-display').text(`${character.mana} / ${character.maxMana}`);
     
-        // Armor and Weapon
         $('#armor-display').text(character.armor);
         $('#weapon-display').text(character.weapon);
 
-        // Gold in HUD
         $('#gold-display').text(character.gold);
     }
-});    
+    //#endregion Character Info Display
+});

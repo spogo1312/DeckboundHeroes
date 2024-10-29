@@ -19,8 +19,13 @@ body {
     flex-wrap: wrap;
     margin-top: 20px;
 }
+/* Highlight selected card */
+.card.selected {
+    border-color: #4caf50; /* Green border for selected */
+    background-color: #e8f5e9; /* Light green background */
+}
 
-.card {
+.stat-card {
     padding: 10px;
     margin: 10px;
     background-color: #efefef;
