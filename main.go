@@ -66,7 +66,6 @@ type Character struct {
 
 var currentEnemy *Enemy
 var player Character
-
 var db *sql.DB
 
 func main() {
