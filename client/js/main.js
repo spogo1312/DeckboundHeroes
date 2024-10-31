@@ -373,13 +373,6 @@ $(document).ready(function () {
     }
   });
 
-  // Initial setup to show the correct text
-  if ($("#character-overview").is(":visible")) {
-    $("#toggle-overview-btn").text("Hide Character Overview");
-  } else {
-    $("#toggle-overview-btn").text("Show Character Overview");
-  }
-
   function displayCharacterInfo(character) {
     $("#toggle-overview-btn").show().text("Hide Character Overview");
     playerData = character;
