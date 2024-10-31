@@ -125,6 +125,17 @@ $(document).ready(function () {
 
   //#region Deck Building
   let playerDeck = [];
+  // Toggle deck builder on button click
+  $("#toggle-deck-builder-btn").click(function () {
+    $("#deck-builder").toggle(); // Toggle visibility of the deck builder
+
+    // Update button text based on visibility
+    if ($("#deck-builder").is(":visible")) {
+      $(this).text("Hide Deck Builder");
+    } else {
+      $(this).text("Show Deck Builder");
+    }
+  });
 
   function generateBuildDeck() {
     const cards = [
@@ -351,7 +362,26 @@ $(document).ready(function () {
   //#endregion Save/Load Progress
 
   //#region Character Info Display
+  // Toggle character overview on button click
+  $("#toggle-overview-btn").click(function () {
+    $("#character-overview").toggle(); // Toggle visibility of the overview
+    // Update button text based on visibility
+    if ($("#character-overview").is(":visible")) {
+      $(this).text("Hide Character Overview");
+    } else {
+      $(this).text("Show Character Overview");
+    }
+  });
+
+  // Initial setup to show the correct text
+  if ($("#character-overview").is(":visible")) {
+    $("#toggle-overview-btn").text("Hide Character Overview");
+  } else {
+    $("#toggle-overview-btn").text("Show Character Overview");
+  }
+
   function displayCharacterInfo(character) {
+    $("#toggle-overview-btn").show().text("Hide Character Overview");
     playerData = character;
     $("#character-name").text(`${character.name}`);
     $("#character-class-race").text(`${character.race} ${character.class}`);
