@@ -14,20 +14,26 @@ import (
 	_ "modernc.org/sqlite" // Import the SQLite driver
 )
 
+type Effect struct {
+	Type        string                 `json:"type"`        // The type of effect, e.g., "damage", "heal", "buff", etc.
+	Target      string                 `json:"target"`      // Who the effect applies to, e.g., "self", "enemy", "allies"
+	Parameters  map[string]interface{} `json:"parameters"`  // Additional parameters specific to the effect
+	Description string                 `json:"description"` // Textual description of the effect
+}
+
 type Card struct {
-	ID         int    `json:"id"`
-	Name       string `json:"name"`
-	Damage     int    `json:"damage"`
-	ManaCost   int    `json:"manaCost"`
-	Heal       int    `json:"heal"`
-	HealthCost int    `json:"healthCost"`
-	Type       string `json:"type"` // e.g., "spell" or "attack"
-	Effect     string `json:"effect"`
+	ID       int      `json:"id"`
+	Name     string   `json:"name"`
+	ManaCost int      `json:"manaCost"`
+	Type     string   `json:"type"`    // e.g., "spell", "attack", "minion"
+	Effects  []Effect `json:"effects"` // List of effects this card has
 }
 
 type Enemy struct {
+	Entity
 	Name             string `json:"name"`
 	Health           int    `json:"health"`
+	MaxHealth        int    `json:"maxHealth"`
 	Strength         int    `json:"strength"`
 	Dexterity        int    `json:"dexterity"`
 	Intelligence     int    `json:"intelligence"`
@@ -35,6 +41,11 @@ type Enemy struct {
 	Weapon           string `json:"weapon"`
 	Level            int    `json:"level"`
 	ExperienceReward int    `json:"experienceReward"` // Reward given upon defeat
+
+	ActiveDoTs   []DoT
+	ActiveHoTs   []HoT
+	ActiveBuffs  []Buff
+	ActiveStatus []StatusEffect
 }
 
 type Stats struct {
@@ -48,7 +59,19 @@ type Stats struct {
 	Luck         int `json:"luck"`
 }
 
+type Entity struct {
+	Name         string
+	Health       int
+	MaxHealth    int
+	ActiveDoTs   []DoT
+	ActiveHoTs   []HoT
+	ActiveBuffs  []Buff
+	ActiveStatus []StatusEffect
+	// Add other necessary fields
+}
+
 type Character struct {
+	Entity
 	Name      string `json:"name"`
 	Class     string `json:"class"`
 	Race      string `json:"race"`
@@ -62,6 +85,33 @@ type Character struct {
 	Armor     string `json:"armor"`
 	Weapon    string `json:"weapon"`
 	Stats     Stats  `json:"stats"`
+
+	ActiveDoTs   []DoT
+	ActiveHoTs   []HoT
+	ActiveBuffs  []Buff
+	ActiveStatus []StatusEffect
+}
+
+type DoT struct {
+	Amount   int
+	Duration int
+}
+
+type HoT struct {
+	Amount   int
+	Duration int
+}
+
+type Buff struct {
+	Stat     string
+	Modifier float64
+	Duration int
+}
+
+type StatusEffect struct {
+	EffectName string
+	Chance     float64
+	Duration   int
 }
 
 var currentEnemy *Enemy
@@ -127,6 +177,31 @@ func withCORS(next http.HandlerFunc) http.HandlerFunc {
 		// Pass the request to the next handler
 		next(w, r)
 	}
+}
+
+func (e Entity) ApplyDoT(amount int, duration int) {
+	e.ActiveDoTs = append(e.ActiveDoTs, DoT{Amount: amount, Duration: duration})
+	currentEnemy.ActiveDoTs = append(currentEnemy.ActiveDoTs, DoT{Amount: amount, Duration: duration})
+}
+
+func (e Entity) ApplyHoT(amount int, duration int) {
+	e.ActiveHoTs = append(e.ActiveHoTs, HoT{Amount: amount, Duration: duration})
+}
+
+func (e Entity) ApplyBuff(stat string, modifier float64, duration int) {
+	e.ActiveBuffs = append(e.ActiveBuffs, Buff{Stat: stat, Modifier: modifier, Duration: duration})
+}
+
+func (e Entity) ApplyStatusEffect(effectName string, chance float64, duration int) {
+	e.ActiveStatus = append(e.ActiveStatus, StatusEffect{EffectName: effectName, Chance: chance, Duration: duration})
+}
+
+func (e Entity) ReceiveDamage(amount int) int {
+	e.Health -= amount
+	if e.Health < 0 {
+		e.Health = 0
+	}
+	return amount
 }
 
 func SavePlayerToDB(p Character) error {
@@ -426,43 +501,134 @@ func CharacterHandler(w http.ResponseWriter, r *http.Request) {
 }
 
 func CombatRound(player *Character, enemy *Enemy, action string, card *Card) map[string]interface{} {
-
 	var result string
+	var combatOver bool
 
+	// Create Entity instances for player and enemy
+	playerEntity := &Entity{
+		Name:         player.Name,
+		Health:       player.Health,
+		MaxHealth:    player.MaxHealth,
+		ActiveDoTs:   player.Entity.ActiveDoTs,
+		ActiveHoTs:   player.ActiveHoTs,
+		ActiveBuffs:  player.ActiveBuffs,
+		ActiveStatus: player.ActiveStatus,
+	}
+
+	enemyEntity := &Entity{
+		Name:         enemy.Name,
+		Health:       enemy.Health,
+		MaxHealth:    enemy.MaxHealth,
+		ActiveDoTs:   enemy.ActiveDoTs,
+		ActiveHoTs:   enemy.ActiveHoTs,
+		ActiveBuffs:  enemy.ActiveBuffs,
+		ActiveStatus: enemy.ActiveStatus,
+	}
+
+	// Process ongoing effects for the player
+	playerResult := processOngoingEffects(playerEntity)
+	if playerResult != "" {
+		result += playerResult
+	}
+
+	// Update player's effects
+	player.ActiveDoTs = playerEntity.ActiveDoTs
+	player.ActiveHoTs = playerEntity.ActiveHoTs
+	player.ActiveBuffs = playerEntity.ActiveBuffs
+	player.ActiveStatus = playerEntity.ActiveStatus
+	player.Health = playerEntity.Health
+
+	// Check if the player is still alive after processing effects
+	if player.Health <= 0 {
+		result += " Player defeated by ongoing effects! Game over."
+		combatOver = true
+		return map[string]interface{}{
+			"result":     result,
+			"playerHP":   player.Health,
+			"enemyHP":    enemy.Health,
+			"playerMana": player.Mana,
+			"combatOver": combatOver,
+		}
+	}
+
+	// Process ongoing effects for the enemy
+	enemyResult := processOngoingEffects(enemyEntity)
+	if enemyResult != "" {
+		result += enemyResult
+	}
+
+	// Update enemy's effects
+	enemy.ActiveDoTs = enemyEntity.ActiveDoTs
+	enemy.ActiveHoTs = enemyEntity.ActiveHoTs
+	enemy.ActiveBuffs = enemyEntity.ActiveBuffs
+	enemy.ActiveStatus = enemyEntity.ActiveStatus
+	enemy.Health = enemyEntity.Health
+
+	// Check if the enemy is still alive after processing effects
+	if enemy.Health <= 0 {
+		result += fmt.Sprintf(" %s defeated by ongoing effects! You gain %d XP.", enemy.Name, enemy.ExperienceReward)
+		player.XP += enemy.ExperienceReward
+		currentEnemy = nil // Reset for new encounter
+		combatOver = true
+		return map[string]interface{}{
+			"result":     result,
+			"playerHP":   player.Health,
+			"enemyHP":    enemy.Health,
+			"playerMana": player.Mana,
+			"combatOver": combatOver,
+		}
+	}
+
+	// Handle player's action
 	if action == "attack" {
 		// Basic Attack
 		playerAttack := player.Stats.Strength * 2 // Example strength-based attack
 		enemy.Health -= playerAttack
-		result = fmt.Sprintf("Player attacks %s for %d damage!", enemy.Name, playerAttack)
+		result += fmt.Sprintf(" Player attacks %s for %d damage!", enemy.Name, playerAttack)
 	} else if action == "castSpell" && card != nil {
 		// Spell Casting
 		if player.Mana >= card.ManaCost { // Check if player has enough mana
 			player.Mana -= card.ManaCost
-			enemy.Health -= card.Damage // Damage is based on card stats
-			player.Health = player.Health + card.Heal
-			if player.Health > player.MaxHealth {
-				player.Health = player.MaxHealth
-			}
-			result = fmt.Sprintf("Player casts %s on %s for %d damage!", card.Name, enemy.Name, card.Damage)
+			// Apply the card's effects
+			cardResult := applyCardEffects(card, player, enemy)
+			result += cardResult
 		} else {
-			result = "Not enough mana to cast this spell."
+			result += " Not enough mana to cast this spell."
 		}
 	}
 
-	// Enemy's turn to attack if still alive
-	if enemy.Health > 0 {
-		enemyAttack := enemy.Strength * 2 // Basic enemy attack logic
-		player.Health -= enemyAttack
-		result += fmt.Sprintf(" %s counterattacks for %d damage!", enemy.Name, enemyAttack)
-	} else if enemy.Health <= 0 {
+	// Check if enemy is defeated after player's action
+	if enemy.Health <= 0 {
 		result += fmt.Sprintf(" %s defeated! You gain %d XP.", enemy.Name, enemy.ExperienceReward)
 		player.XP += enemy.ExperienceReward
 		currentEnemy = nil // Reset for new encounter
+		combatOver = true
+		return map[string]interface{}{
+			"result":     result,
+			"playerHP":   player.Health,
+			"enemyHP":    enemy.Health,
+			"playerMana": player.Mana,
+			"combatOver": combatOver,
+		}
 	}
 
-	// Check if player is defeated
+	// Enemy's turn to attack if still alive and combat is not over
+	combatOver = player.Health <= 0 || enemy.Health <= 0
+	if enemy.Health > 0 && !combatOver {
+		// Wrap enemy in Entity for isStunned check
+		if isStunned(enemyEntity) {
+			result += fmt.Sprintf(" %s is stunned and cannot act!", enemy.Name)
+		} else {
+			enemyAttack := enemy.Strength * 2 // Basic enemy attack logic
+			player.Health -= enemyAttack
+			result += fmt.Sprintf(" %s attacks you for %d damage!", enemy.Name, enemyAttack)
+		}
+	}
+
+	// Check if player is defeated after enemy's action
 	if player.Health <= 0 {
 		result += " Player defeated! Game over."
+		combatOver = true
 	}
 
 	return map[string]interface{}{
@@ -470,9 +636,10 @@ func CombatRound(player *Character, enemy *Enemy, action string, card *Card) map
 		"playerHP":   player.Health,
 		"enemyHP":    enemy.Health,
 		"playerMana": player.Mana,
-		"combatOver": player.Health <= 0 || enemy.Health <= 0,
+		"combatOver": combatOver,
 	}
 }
+
 func StartCombatHandler(w http.ResponseWriter, r *http.Request) {
 	if r.Method != "POST" {
 		http.Error(w, "Invalid request method", http.StatusMethodNotAllowed)
@@ -483,7 +650,7 @@ func StartCombatHandler(w http.ResponseWriter, r *http.Request) {
 	if currentEnemy == nil || currentEnemy.Health <= 0 {
 		currentEnemy = &Enemy{
 			Name:             "Goblin",
-			Health:           30,
+			Health:           300,
 			Strength:         8,
 			Dexterity:        6,
 			Intelligence:     4,
@@ -511,29 +678,17 @@ func StartCombatHandler(w http.ResponseWriter, r *http.Request) {
 	case "attack":
 		response = CombatRound(&player, currentEnemy, "attack", nil)
 	case "castSpell":
-		// Retrieve the selected card if a spell is cast
-		card := getCardByID(actionData.CardID) // Implement getCardByID to fetch the card
+		card := getCardByID(actionData.CardID)
 		response = CombatRound(&player, currentEnemy, "castSpell", card)
 	case "start":
-		// Reset the enemy and start combat
-		currentEnemy = &Enemy{
-			Name:             "Goblin",
-			Health:           30,
-			Strength:         8,
-			Dexterity:        6,
-			Intelligence:     4,
-			Armor:            2,
-			Weapon:           "Rusty Knife",
-			Level:            1,
-			ExperienceReward: 50,
-		}
+		// Setup combat
 		response = map[string]interface{}{
-			"result":     "fight started",
-			"playerHP":   player.Health,
-			"enemyHP":    currentEnemy.Health,
-			"player":     player,
-			"combatOver": false,
+			"result": "fight started",
+			// other relevant fields
 		}
+	default:
+		http.Error(w, "Invalid action", http.StatusBadRequest)
+		return
 	}
 
 	// Send response to frontend
@@ -543,12 +698,87 @@ func StartCombatHandler(w http.ResponseWriter, r *http.Request) {
 
 // Example helper function to retrieve a card by ID (implement this based on your card management)
 func getCardByID(cardID int) *Card {
-	// Sample card data; replace this with a database query or other storage retrieval as needed
 	cards := []Card{
-		{ID: 1, Name: "Fireball", Damage: 10, ManaCost: 5, Type: "spell", Effect: "Burns the enemy for extra damage"},
-		{ID: 2, Name: "Ice Shard", Damage: 8, ManaCost: 4, Type: "spell", Effect: "Freezes the enemy, reducing speed"},
-		{ID: 3, Name: "Healing Light", Damage: 0, ManaCost: 6, Heal: 15, Type: "spell", Effect: "Heals the player"},
-		{ID: 4, Name: "Shadow Strike", Damage: 12, ManaCost: 7, Type: "attack", Effect: "Deals high damage with a chance to stun"},
+		{
+			ID:       1,
+			Name:     "Fireball",
+			ManaCost: 5,
+			Type:     "spell",
+			Effects: []Effect{
+				{
+					Type:        "damage",
+					Target:      "enemy",
+					Parameters:  map[string]interface{}{"amount": 10},
+					Description: "Deals 10 damage to the enemy.",
+				},
+				{
+					Type:        "damageOverTime",
+					Target:      "enemy",
+					Parameters:  map[string]interface{}{"amount": 3, "duration": 3},
+					Description: "Burns the enemy for 3 damage over 3 turns.",
+				},
+			},
+		},
+		{
+			ID:       2,
+			Name:     "Ice Shard",
+			ManaCost: 4,
+			Type:     "spell",
+			Effects: []Effect{
+				{
+					Type:        "damage",
+					Target:      "enemy",
+					Parameters:  map[string]interface{}{"amount": 8},
+					Description: "Deals 8 damage to the enemy.",
+				},
+				{
+					Type:        "statusEffect",
+					Target:      "enemy",
+					Parameters:  map[string]interface{}{"effect": "freeze", "chance": 0.5, "duration": 3},
+					Description: "50% chance to freeze the enemy, potentially skipping their turn for 3 rounds.",
+				},
+			},
+		},
+		{
+			ID:       3,
+			Name:     "Healing Light",
+			ManaCost: 6,
+			Type:     "spell",
+			Effects: []Effect{
+				{
+					Type:        "heal",
+					Target:      "self",
+					Parameters:  map[string]interface{}{"amount": 20},
+					Description: "Heals yourself for 20 health.",
+				},
+				{
+					Type:        "healOverTime",
+					Target:      "self",
+					Parameters:  map[string]interface{}{"amount": 5, "duration": 2},
+					Description: "Heals yourself for 5 health over 2 turns.",
+				},
+			},
+		},
+		{
+			ID:       4,
+			Name:     "Shadow Strike",
+			ManaCost: 7,
+			Type:     "attack",
+			Effects: []Effect{
+				{
+					Type:        "damage",
+					Target:      "enemy",
+					Parameters:  map[string]interface{}{"amount": 12},
+					Description: "Deals 12 damage to the enemy.",
+				},
+				{
+					Type:        "buff",
+					Target:      "self",
+					Parameters:  map[string]interface{}{"stat": "attack", "modifier": 1.5, "duration": 2},
+					Description: "Increases your attack by 50% for 2 turns.",
+				},
+			},
+		},
 	}
 
 	// Search for the card with the matching ID
@@ -560,6 +790,206 @@ func getCardByID(cardID int) *Card {
 
 	// Return nil if no card with the specified ID is found
 	return nil
+}
+
+func applyCardEffects(card *Card, player *Character, enemy *Enemy) string {
+	var result string
+
+	for _, effect := range card.Effects {
+		var target *Enemy
+
+		switch effect.Target {
+		//case "self", "player":
+		//target = &player
+		case "enemy":
+			target = enemy
+		default:
+			result += fmt.Sprintf("Invalid target '%s' for effect %s.", effect.Target, effect.Type)
+			continue
+		}
+
+		switch effect.Type {
+		case "damage":
+			amount, ok := getFloatParameter(effect.Parameters, "amount")
+			if !ok {
+				result += " Invalid 'amount' parameter for damage effect."
+				continue
+			}
+			target.Health -= int(amount)
+			result += fmt.Sprintf(" %s takes %d damage.", target.Name, int(amount))
+
+		case "heal":
+			amount, ok := getFloatParameter(effect.Parameters, "amount")
+			if !ok {
+				result += " Invalid 'amount' parameter for heal effect."
+				continue
+			}
+			target.Health += int(amount)
+			if target.Health > target.MaxHealth {
+				target.Health = target.MaxHealth
+			}
+			result += fmt.Sprintf(" %s heals for %d health.", target.Name, int(amount))
+
+		case "damageOverTime":
+			amount, ok := getFloatParameter(effect.Parameters, "amount")
+			duration, okDur := getFloatParameter(effect.Parameters, "duration")
+			if !ok || !okDur {
+				result += " Invalid parameters for damage over time effect."
+				continue
+			}
+			target.ApplyDoT(int(amount), int(duration))
+			result += fmt.Sprintf(" %s is afflicted with damage over time.", target.Name)
+
+		case "healOverTime":
+			amount, ok := getFloatParameter(effect.Parameters, "amount")
+			duration, okDur := getFloatParameter(effect.Parameters, "duration")
+			if !ok || !okDur {
+				result += " Invalid parameters for heal over time effect."
+				continue
+			}
+			target.ApplyHoT(int(amount), int(duration))
+			result += fmt.Sprintf(" %s will heal over time.", target.Name)
+
+		case "buff":
+			stat, okStat := effect.Parameters["stat"].(string)
+			modifier, okMod := getFloatParameter(effect.Parameters, "modifier")
+			duration, okDur := getFloatParameter(effect.Parameters, "duration")
+			if !okStat || !okMod || !okDur {
+				result += " Invalid parameters for buff effect."
+				continue
+			}
+			target.ApplyBuff(stat, modifier, int(duration))
+			result += fmt.Sprintf(" %s's %s is increased.", target.Name, stat)
+
+		case "statusEffect":
+			effectName, okEffect := effect.Parameters["effect"].(string)
+			chance, okChance := getFloatParameter(effect.Parameters, "chance")
+			duration, okDur := getFloatParameter(effect.Parameters, "duration")
+			if !okEffect || !okChance || !okDur {
+				result += " Invalid parameters for status effect."
+				continue
+			}
+			target.ApplyStatusEffect(effectName, chance, int(duration))
+			result += fmt.Sprintf(" %s is affected by %s.", target.Name, effectName)
+
+		case "lifeSteal":
+			amount, ok := getFloatParameter(effect.Parameters, "amount")
+			if !ok {
+				result += " Invalid 'amount' parameter for lifeSteal effect."
+				continue
+			}
+			damageDealt := enemy.ReceiveDamage(int(amount))
+			player.Health += damageDealt
+			if player.Health > player.MaxHealth {
+				player.Health = player.MaxHealth
+			}
+			result += fmt.Sprintf(" %s steals %d health from %s.", player.Name, damageDealt, enemy.Name)
+
+		default:
+			result += fmt.Sprintf(" Effect type %s not implemented.", effect.Type)
+		}
+	}
+
+	return result
+}
+
+func getFloatParameter(parameters map[string]interface{}, key string) (float64, bool) {
+	value, exists := parameters[key]
+	if !exists {
+		return 0, false
+	}
+	switch v := value.(type) {
+	case float64:
+		return v, true
+	case int:
+		return float64(v), true
+	default:
+		return 0, false
+	}
+}
+
+func isStunned(entity *Entity) bool {
+	for _, status := range entity.ActiveStatus {
+		if status.EffectName == "stun" || status.EffectName == "freeze" {
+			// Roll chance to determine if the effect takes place
+			if rand.Float64() < status.Chance {
+				return true
+			}
+		}
+	}
+	return false
+}
+func processOngoingEffects(entity *Entity) string {
+	var result string
+
+	// Process DoTs
+	for i := 0; i < len(entity.ActiveDoTs); {
+		dot := &entity.ActiveDoTs[i]
+		entity.Health -= dot.Amount
+		result += fmt.Sprintf(" %s takes %d damage.", entity.Name, dot.Amount)
+		dot.Duration--
+		if dot.Duration <= 0 {
+			// Remove expired DoT
+			entity.ActiveDoTs = append(entity.ActiveDoTs[:i], entity.ActiveDoTs[i+1:]...)
+		} else {
+			i++
+		}
+	}
+
+	// Process HoTs
+	for i := 0; i < len(entity.ActiveHoTs); {
+		hot := &entity.ActiveHoTs[i]
+		entity.Health += hot.Amount
+		if entity.Health > entity.MaxHealth {
+			entity.Health = entity.MaxHealth
+		}
+		result += fmt.Sprintf(" %s heals %d health.", entity.Name, hot.Amount)
+		hot.Duration--
+		if hot.Duration <= 0 {
+			// Remove expired HoT
+			entity.ActiveHoTs = append(entity.ActiveHoTs[:i], entity.ActiveHoTs[i+1:]...)
+		} else {
+			i++
+		}
+	}
+
+	// Process Buffs (if needed)
+
+	// Process Status Effects (e.g., reduce duration)
+	for i := 0; i < len(entity.ActiveStatus); {
+		status := &entity.ActiveStatus[i]
+		status.Duration--
+		if status.Duration <= 0 {
+			// Remove expired status effect
+			entity.ActiveStatus = append(entity.ActiveStatus[:i], entity.ActiveStatus[i+1:]...)
+		} else {
+			i++
+		}
+	}
+
+	return result
+}
+
+func getTarget(targetType string, player *Character, enemy *Enemy) *Entity {
+	switch targetType {
+	case "self":
+		return &Entity{
+			Name:      player.Name,
+			Health:    player.Health,
+			MaxHealth: player.MaxHealth,
+			// Add other fields if necessary
+		}
+	case "enemy":
+		return &Entity{
+			Name:      enemy.Name,
+			Health:    enemy.Health,
+			MaxHealth: enemy.MaxHealth,
+			// Add other fields if necessary
+		}
+	// Implement other target types as needed
+	default:
+		return nil
+	}
 }
 
 func UseCardHandler(w http.ResponseWriter, r *http.Request) {
@@ -577,30 +1007,29 @@ func UseCardHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Example card retrieval (from deck or predefined card list)
-	card := Card{
-		ID:       cardData.CardID,
-		Name:     "Fireball",
-		Damage:   10,
-		ManaCost: 5,
-		Type:     "spell",
-		Effect:   "Burns the enemy for extra damage",
+	// Retrieve the card by ID
+	card := getCardByID(cardData.CardID)
+	if card == nil {
+		http.Error(w, "Card not found", http.StatusNotFound)
+		return
 	}
 
-	// Verify player has enough mana to use the card
+	// Verify player has enough mana
 	if player.Mana < card.ManaCost {
 		http.Error(w, "Not enough mana", http.StatusBadRequest)
 		return
 	}
 
-	// Apply card effect
+	// Deduct mana cost
 	player.Mana -= card.ManaCost
-	currentEnemy.Health -= card.Damage
+
+	// Apply card effects
+	result := applyCardEffects(card, &player, currentEnemy)
 
 	// Return the result of the card action
 	w.Header().Set("Content-Type", "application/json")
 	json.NewEncoder(w).Encode(map[string]interface{}{
-		"message":     fmt.Sprintf("Player uses %s on enemy for %d damage", card.Name, card.Damage),
+		"message":     fmt.Sprintf("Player uses %s: %s", card.Name, result),
 		"enemyHealth": currentEnemy.Health,
 		"playerMana":  player.Mana,
 	})
