@@ -114,6 +114,18 @@ type StatusEffect struct {
 	Duration   int
 }
 
+type Target interface {
+	ApplyDoT(amount int, duration int)
+	ApplyHoT(amount int, duration int)
+	ApplyBuff(stat string, modifier float64, duration int)
+	ApplyStatusEffect(effectName string, chance float64, duration int)
+	ReceiveDamage(amount int) int
+	GetName() string
+	GetHealth() int
+	SetHealth(int)
+	GetMaxHealth() int
+}
+
 var currentEnemy *Enemy
 var player Character
 var db *sql.DB
@@ -184,24 +196,104 @@ func (e Entity) ApplyDoT(amount int, duration int) {
 	currentEnemy.ActiveDoTs = append(currentEnemy.ActiveDoTs, DoT{Amount: amount, Duration: duration})
 }
 
-func (e Entity) ApplyHoT(amount int, duration int) {
+func (e *Entity) ApplyHoT(amount int, duration int) {
 	e.ActiveHoTs = append(e.ActiveHoTs, HoT{Amount: amount, Duration: duration})
+
 }
 
-func (e Entity) ApplyBuff(stat string, modifier float64, duration int) {
+func (e *Entity) ApplyBuff(stat string, modifier float64, duration int) {
 	e.ActiveBuffs = append(e.ActiveBuffs, Buff{Stat: stat, Modifier: modifier, Duration: duration})
 }
 
-func (e Entity) ApplyStatusEffect(effectName string, chance float64, duration int) {
+func (e *Entity) ApplyStatusEffect(effectName string, chance float64, duration int) {
 	e.ActiveStatus = append(e.ActiveStatus, StatusEffect{EffectName: effectName, Chance: chance, Duration: duration})
 }
 
-func (e Entity) ReceiveDamage(amount int) int {
+func (e *Entity) ReceiveDamage(amount int) int {
 	e.Health -= amount
 	if e.Health < 0 {
 		e.Health = 0
 	}
 	return amount
+}
+func (c *Character) ApplyDoT(amount int, duration int) {
+	c.ActiveDoTs = append(c.ActiveDoTs, DoT{Amount: amount, Duration: duration})
+}
+
+func (c *Character) ApplyHoT(amount int, duration int) {
+	c.ActiveHoTs = append(c.ActiveHoTs, HoT{Amount: amount, Duration: duration})
+}
+
+func (c *Character) ApplyBuff(stat string, modifier float64, duration int) {
+	c.ActiveBuffs = append(c.ActiveBuffs, Buff{Stat: stat, Modifier: modifier, Duration: duration})
+}
+
+func (c *Character) ApplyStatusEffect(effectName string, chance float64, duration int) {
+	c.ActiveStatus = append(c.ActiveStatus, StatusEffect{EffectName: effectName, Chance: chance, Duration: duration})
+}
+
+func (c *Character) ReceiveDamage(amount int) int {
+	c.Health -= amount
+	if c.Health < 0 {
+		c.Health = 0
+	}
+	return amount
+}
+
+func (c *Character) GetName() string {
+	return c.Name
+}
+
+func (c *Character) GetHealth() int {
+	return c.Health
+}
+
+func (c *Character) SetHealth(h int) {
+	c.Health = h
+}
+
+func (c *Character) GetMaxHealth() int {
+	return c.MaxHealth
+}
+
+func (e *Enemy) ApplyDoT(amount int, duration int) {
+	e.ActiveDoTs = append(e.ActiveDoTs, DoT{Amount: amount, Duration: duration})
+}
+
+func (e *Enemy) ApplyHoT(amount int, duration int) {
+	e.ActiveHoTs = append(e.ActiveHoTs, HoT{Amount: amount, Duration: duration})
+}
+
+func (e *Enemy) ApplyBuff(stat string, modifier float64, duration int) {
+	e.ActiveBuffs = append(e.ActiveBuffs, Buff{Stat: stat, Modifier: modifier, Duration: duration})
+}
+
+func (e *Enemy) ApplyStatusEffect(effectName string, chance float64, duration int) {
+	e.ActiveStatus = append(e.ActiveStatus, StatusEffect{EffectName: effectName, Chance: chance, Duration: duration})
+}
+
+func (e *Enemy) ReceiveDamage(amount int) int {
+	e.Health -= amount
+	if e.Health < 0 {
+		e.Health = 0
+	}
+	return amount
+}
+
+func (e *Enemy) GetName() string {
+	return e.Name
+}
+
+func (e *Enemy) GetHealth() int {
+	return e.Health
+}
+
+func (e *Enemy) SetHealth(h int) {
+	e.Health = h
+}
+
+func (e *Enemy) GetMaxHealth() int {
+	return e.MaxHealth
 }
 
 func SavePlayerToDB(p Character) error {
@@ -796,11 +888,11 @@ func applyCardEffects(card *Card, player *Character, enemy *Enemy) string {
 	var result string
 
 	for _, effect := range card.Effects {
-		var target *Enemy
+		var target Target
 
 		switch effect.Target {
-		//case "self", "player":
-		//target = &player
+		case "self", "player":
+			target = player
 		case "enemy":
 			target = enemy
 		default:
@@ -815,8 +907,8 @@ func applyCardEffects(card *Card, player *Character, enemy *Enemy) string {
 				result += " Invalid 'amount' parameter for damage effect."
 				continue
 			}
-			target.Health -= int(amount)
-			result += fmt.Sprintf(" %s takes %d damage.", target.Name, int(amount))
+			target.ReceiveDamage(int(amount))
+			result += fmt.Sprintf(" %s takes %d damage.", target.GetName(), int(amount))
 
 		case "heal":
 			amount, ok := getFloatParameter(effect.Parameters, "amount")
@@ -824,11 +916,12 @@ func applyCardEffects(card *Card, player *Character, enemy *Enemy) string {
 				result += " Invalid 'amount' parameter for heal effect."
 				continue
 			}
-			target.Health += int(amount)
-			if target.Health > target.MaxHealth {
-				target.Health = target.MaxHealth
+			newHealth := target.GetHealth() + int(amount)
+			if newHealth > target.GetMaxHealth() {
+				newHealth = target.GetMaxHealth()
 			}
-			result += fmt.Sprintf(" %s heals for %d health.", target.Name, int(amount))
+			target.SetHealth(newHealth)
+			result += fmt.Sprintf(" %s heals for %d health.", target.GetName(), int(amount))
 
 		case "damageOverTime":
 			amount, ok := getFloatParameter(effect.Parameters, "amount")
@@ -838,7 +931,7 @@ func applyCardEffects(card *Card, player *Character, enemy *Enemy) string {
 				continue
 			}
 			target.ApplyDoT(int(amount), int(duration))
-			result += fmt.Sprintf(" %s is afflicted with damage over time.", target.Name)
+			result += fmt.Sprintf(" %s is afflicted with damage over time.", target.GetName())
 
 		case "healOverTime":
 			amount, ok := getFloatParameter(effect.Parameters, "amount")
@@ -848,7 +941,7 @@ func applyCardEffects(card *Card, player *Character, enemy *Enemy) string {
 				continue
 			}
 			target.ApplyHoT(int(amount), int(duration))
-			result += fmt.Sprintf(" %s will heal over time.", target.Name)
+			result += fmt.Sprintf(" %s will heal over time.", target.GetName())
 
 		case "buff":
 			stat, okStat := effect.Parameters["stat"].(string)
@@ -859,7 +952,7 @@ func applyCardEffects(card *Card, player *Character, enemy *Enemy) string {
 				continue
 			}
 			target.ApplyBuff(stat, modifier, int(duration))
-			result += fmt.Sprintf(" %s's %s is increased.", target.Name, stat)
+			result += fmt.Sprintf(" %s's %s is increased.", target.GetName(), stat)
 
 		case "statusEffect":
 			effectName, okEffect := effect.Parameters["effect"].(string)
@@ -870,7 +963,7 @@ func applyCardEffects(card *Card, player *Character, enemy *Enemy) string {
 				continue
 			}
 			target.ApplyStatusEffect(effectName, chance, int(duration))
-			result += fmt.Sprintf(" %s is affected by %s.", target.Name, effectName)
+			result += fmt.Sprintf(" %s is affected by %s.", target.GetName(), effectName)
 
 		case "lifeSteal":
 			amount, ok := getFloatParameter(effect.Parameters, "amount")
@@ -879,11 +972,12 @@ func applyCardEffects(card *Card, player *Character, enemy *Enemy) string {
 				continue
 			}
 			damageDealt := enemy.ReceiveDamage(int(amount))
-			player.Health += damageDealt
-			if player.Health > player.MaxHealth {
-				player.Health = player.MaxHealth
+			playerHealth := player.GetHealth() + damageDealt
+			if playerHealth > player.GetMaxHealth() {
+				playerHealth = player.GetMaxHealth()
 			}
-			result += fmt.Sprintf(" %s steals %d health from %s.", player.Name, damageDealt, enemy.Name)
+			player.SetHealth(playerHealth)
+			result += fmt.Sprintf(" %s steals %d health from %s.", player.GetName(), damageDealt, enemy.GetName())
 
 		default:
 			result += fmt.Sprintf(" Effect type %s not implemented.", effect.Type)
