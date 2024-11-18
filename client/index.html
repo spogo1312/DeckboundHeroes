@@ -1,20 +1,20 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Heroes and Decks</title>
     <!-- Correct Font Awesome CDN link -->
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css">
-    <link href="https://fonts.googleapis.com/css2?family=IM+Fell+English&family=MedievalSharp&display=swap">
-    <link rel="stylesheet" href="css/styles.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css" />
+    <link href="https://fonts.googleapis.com/css2?family=IM+Fell+English&family=MedievalSharp&display=swap" />
+    <link rel="stylesheet" href="css/styles.css" />
 </head>
-<body>
-    
 
+<body>
     <div id="game-container">
-        <div id="loading-spinner" style="display:none;">
-        <p>Loading...</p>
+        <div id="loading-spinner" style="display: none">
+            <p>Loading...</p>
         </div>
         <h1>Heroes and Decks</h1>
         <div id="deck"></div>
@@ -27,44 +27,71 @@
             Build Your Deck
             <button id="toggle-deck-builder-btn">Show Deck Builder</button>
         </h2>
-        <div id="deck-builder" style="display: none;"></div>
+        <div id="deck-builder" style="display: none"></div>
     </div>
-    
-    
-    
-    
 
     <!-- Character Creation Section -->
     <div id="character-creation">
         <h2>Create Your Character</h2>
         <form id="create-character-form">
             <label for="name">Name:</label>
-            <input type="text" id="name" name="name"><br>
-    
+            <input type="text" id="name" name="name" /><br />
+
             <label for="race">Choose a Race:</label>
             <div class="race-list">
-                <div class="raceb" data-race="Human">Human <i class="fas fa-question-circle info-icon" data-info="Humans are balanced in all stats."></i></div>
-                <div class="raceb" data-race="Elf">Elf <i class="fas fa-question-circle info-icon" data-info="Elves are agile and have high dexterity."></i></div>
-                <div class="raceb" data-race="Dwarf">Dwarf <i class="fas fa-question-circle info-icon" data-info="Dwarves are strong and resilient."></i></div>
-                <div class="raceb" data-race="Orc">Orc <i class="fas fa-question-circle info-icon" data-info="Orcs are extremely strong but lack intelligence."></i></div>
-                <div class="raceb" data-race="Gnome">Gnome <i class="fas fa-question-circle info-icon" data-info="Gnomes have high intelligence and perception."></i></div>
+                <div class="raceb" data-race="Human">
+                    Human
+                    <i class="fas fa-question-circle info-icon" data-info="Humans are balanced in all stats."></i>
+                </div>
+                <div class="raceb" data-race="Elf">
+                    Elf
+                    <i class="fas fa-question-circle info-icon"
+                        data-info="Elves are agile and have high dexterity."></i>
+                </div>
+                <div class="raceb" data-race="Dwarf">
+                    Dwarf
+                    <i class="fas fa-question-circle info-icon" data-info="Dwarves are strong and resilient."></i>
+                </div>
+                <div class="raceb" data-race="Orc">
+                    Orc
+                    <i class="fas fa-question-circle info-icon"
+                        data-info="Orcs are extremely strong but lack intelligence."></i>
+                </div>
+                <div class="raceb" data-race="Gnome">
+                    Gnome
+                    <i class="fas fa-question-circle info-icon"
+                        data-info="Gnomes have high intelligence and perception."></i>
+                </div>
             </div>
-    
+
             <label for="class">Choose a Class:</label>
             <div class="class-list">
-                <div class="classb" data-class="Warrior">Warrior <i class="fas fa-question-circle info-icon" data-info="Warriors are melee combatants with high strength and endurance."></i></div>
-                <div class="classb" data-class="Mage">Mage <i class="fas fa-question-circle info-icon" data-info="Mages specialize in spellcasting with high intelligence."></i></div>
-                <div class="classb" data-class="Rogue">Rogue <i class="fas fa-question-circle info-icon" data-info="Rogues are fast and agile with a focus on dexterity."></i></div>
+                <div class="classb" data-class="Warrior">
+                    Warrior
+                    <i class="fas fa-question-circle info-icon"
+                        data-info="Warriors are melee combatants with high strength and endurance."></i>
+                </div>
+                <div class="classb" data-class="Mage">
+                    Mage
+                    <i class="fas fa-question-circle info-icon"
+                        data-info="Mages specialize in spellcasting with high intelligence."></i>
+                </div>
+                <div class="classb" data-class="Rogue">
+                    Rogue
+                    <i class="fas fa-question-circle info-icon"
+                        data-info="Rogues are fast and agile with a focus on dexterity."></i>
+                </div>
             </div>
-    
+
             <button type="submit">Create Character</button>
         </form>
     </div>
 
-
-    <button id="toggle-overview-btn" style="display: none;">Hide Character Overview</button>
+    <button id="toggle-overview-btn" style="display: none">
+        Hide Character Overview
+    </button>
     <!-- Character Overview Section -->
-    <div id="character-overview" style="display:none;">
+    <div id="character-overview" style="display: none">
         <!-- Basic Info -->
         <div id="basic-info">
             <h2 id="character-name"></h2>
@@ -73,42 +100,49 @@
 
         <!-- Stats Container (Clickable Stats) -->
         <!-- Stats Container (Clickable Stats with Tooltips) -->
-<div id="stats-container">
-    <h3>Stats</h3>
-    <div class="stat" data-stat="Strength">
-        Strength: <span id="stat-strength">0</span>
-        <i class="fas fa-question-circle info-icon" data-info="Strength increases your physical attack damage."></i>
-    </div>
-    <div class="stat" data-stat="Dexterity">
-        Dexterity: <span id="stat-dexterity">0</span>
-        <i class="fas fa-question-circle info-icon" data-info="Dexterity improves your accuracy and evasion."></i>
-    </div>
-    <div class="stat" data-stat="Intelligence">
-        Intelligence: <span id="stat-intelligence">0</span>
-        <i class="fas fa-question-circle info-icon" data-info="Intelligence increases your mana and spell power."></i>
-    </div>
-    <div class="stat" data-stat="Endurance">
-        Endurance: <span id="stat-endurance">0</span>
-        <i class="fas fa-question-circle info-icon" data-info="Endurance increases your health points (HP)."></i>
-    </div>
-    <div class="stat" data-stat="Perception">
-        Perception: <span id="stat-perception">0</span>
-        <i class="fas fa-question-circle info-icon" data-info="Perception improves your ranged attack accuracy."></i>
-    </div>
-    <div class="stat" data-stat="Wisdom">
-        Wisdom: <span id="stat-wisdom">0</span>
-        <i class="fas fa-question-circle info-icon" data-info="Wisdom improves mana regeneration and spell casting."></i>
-    </div>
-    <div class="stat" data-stat="Agility">
-        Agility: <span id="stat-agility">0</span>
-        <i class="fas fa-question-circle info-icon" data-info="Agility increases your movement speed and reflexes."></i>
-    </div>
-    <div class="stat" data-stat="Luck">
-        Luck: <span id="stat-luck">0</span>
-        <i class="fas fa-question-circle info-icon" data-info="Luck increases your critical hit chance and loot quality."></i>
-    </div>
-</div>
-
+        <div id="stats-container">
+            <h3>Stats</h3>
+            <div class="stat" data-stat="Strength">
+                Strength: <span id="stat-strength">0</span>
+                <i class="fas fa-question-circle info-icon"
+                    data-info="Strength increases your physical attack damage."></i>
+            </div>
+            <div class="stat" data-stat="Dexterity">
+                Dexterity: <span id="stat-dexterity">0</span>
+                <i class="fas fa-question-circle info-icon"
+                    data-info="Dexterity improves your accuracy and evasion."></i>
+            </div>
+            <div class="stat" data-stat="Intelligence">
+                Intelligence: <span id="stat-intelligence">0</span>
+                <i class="fas fa-question-circle info-icon"
+                    data-info="Intelligence increases your mana and spell power."></i>
+            </div>
+            <div class="stat" data-stat="Endurance">
+                Endurance: <span id="stat-endurance">0</span>
+                <i class="fas fa-question-circle info-icon"
+                    data-info="Endurance increases your health points (HP)."></i>
+            </div>
+            <div class="stat" data-stat="Perception">
+                Perception: <span id="stat-perception">0</span>
+                <i class="fas fa-question-circle info-icon"
+                    data-info="Perception improves your ranged attack accuracy."></i>
+            </div>
+            <div class="stat" data-stat="Wisdom">
+                Wisdom: <span id="stat-wisdom">0</span>
+                <i class="fas fa-question-circle info-icon"
+                    data-info="Wisdom improves mana regeneration and spell casting."></i>
+            </div>
+            <div class="stat" data-stat="Agility">
+                Agility: <span id="stat-agility">0</span>
+                <i class="fas fa-question-circle info-icon"
+                    data-info="Agility increases your movement speed and reflexes."></i>
+            </div>
+            <div class="stat" data-stat="Luck">
+                Luck: <span id="stat-luck">0</span>
+                <i class="fas fa-question-circle info-icon"
+                    data-info="Luck increases your critical hit chance and loot quality."></i>
+            </div>
+        </div>
 
         <!-- Level and XP Container -->
         <div id="level-xp">
@@ -128,30 +162,46 @@
             <p>Weapon: <span id="weapon-display">Wooden Sword</span></p>
         </div>
         <!-- Gold HUD in the top-left corner -->
-        <div id="gold-hud">
-            Gold: <span id="gold-display">100</span>
-        </div>
+        <div id="gold-hud">Gold: <span id="gold-display">100</span></div>
     </div>
     <!-- Combat Controls -->
-    <button id="start-combat-btn" style="display: none;">Start Combat</button>
-    <div id="combat-controls" style="display: none;">
+    <button id="start-combat-btn" style="display: none">Start Combat</button>
+    <div id="combat-controls" style="display: none">
         <h3>Combat</h3>
         <div id="combat-info">
-            <p>Player HP: <span id="player-hp">100</span></p>
-            <p>Enemy HP: <span id="enemy-hp">100</span></p>
+            <div class="health-bar">
+                <label>Player HP:</label>
+                <div class="bar">
+                    <div class="bar-fill" id="player-hp-bar" style="width: 100%"></div>
+                </div>
+            </div>
+            <div class="mana-bar">
+                <label>Player Mana:</label>
+                <div class="bar">
+                    <div class="bar-fill" id="player-mana-bar" style="width: 100%"></div>
+                </div>
+            </div>
+            <div class="health-bar">
+                <label>Enemy HP:</label>
+                <div class="bar">
+                    <div class="bar-fill" id="enemy-hp-bar" style="width: 100%"></div>
+                </div>
+            </div>
         </div>
+
         <button id="attack-btn">Attack</button>
-        <button id="select-card-btn">Select Card </button>
-        <div id="combat-hand" style="display: none;">
+        <button id="select-card-btn">Select Card</button>
+        <div id="combat-hand" style="display: none">
             <h3>Your Cards</h3>
             <button id="use-card-btn">Use Card</button>
             <div id="combat-cards"></div>
         </div>
-        <div id="combat-log"></div> <!-- Display combat updates here -->
+        <div id="combat-log"></div>
+        <!-- Display combat updates here -->
     </div>
 
     <!-- Section for selecting a stat to boost -->
-    <div id="card-selection" style="display:none;">
+    <div id="card-selection" style="display: none">
         <h2 id="step-indicator">Choose a Stat to Boost</h2>
 
         <!-- Stat Selection (New Section) -->
@@ -168,10 +218,9 @@
                 <div class="statb" data-statb="Luck">Luck</div>
             </div>
         </div>
-        
 
         <!-- Card Selection -->
-        <div id="card-container" style="display:none;">
+        <div id="card-container" style="display: none">
             <p>Select a card to boost the chosen stat:</p>
             <div class="card-container">
                 <button class="stat-card" data-value="1">Card 1</button>
@@ -186,4 +235,5 @@
     <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
     <script src="js/main.js"></script>
 </body>
+
 </html>

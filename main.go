@@ -724,12 +724,17 @@ func CombatRound(player *Character, enemy *Enemy, action string, card *Card) map
 	}
 
 	return map[string]interface{}{
-		"result":     result,
-		"playerHP":   player.Health,
-		"enemyHP":    enemy.Health,
-		"playerMana": player.Mana,
-		"combatOver": combatOver,
+		"result":        result,
+		"playerHP":      player.Health,
+		"playerMaxHP":   player.MaxHealth, // Include player max health
+		"playerMana":    player.Mana,
+		"playerMaxMana": player.MaxMana, // Include player max mana
+		"enemyHP":       enemy.Health,
+		"enemyMaxHP":    enemy.MaxHealth, // Include enemy max health
+		"enemyName":     enemy.Name,      // Include enemy name
+		"combatOver":    combatOver,
 	}
+
 }
 
 func StartCombatHandler(w http.ResponseWriter, r *http.Request) {
@@ -742,7 +747,8 @@ func StartCombatHandler(w http.ResponseWriter, r *http.Request) {
 	if currentEnemy == nil || currentEnemy.Health <= 0 {
 		currentEnemy = &Enemy{
 			Name:             "Goblin",
-			Health:           300,
+			Health:           100,
+			MaxHealth:        100,
 			Strength:         8,
 			Dexterity:        6,
 			Intelligence:     4,
@@ -775,8 +781,14 @@ func StartCombatHandler(w http.ResponseWriter, r *http.Request) {
 	case "start":
 		// Setup combat
 		response = map[string]interface{}{
-			"result": "fight started",
-			// other relevant fields
+			"result":        "fight started",
+			"playerHP":      player.Health,
+			"playerMaxHP":   player.MaxHealth, // Include player max health
+			"playerMana":    player.Mana,
+			"playerMaxMana": player.MaxMana, // Include player max mana
+			"enemyHP":       currentEnemy.Health,
+			"enemyMaxHP":    currentEnemy.MaxHealth, // Include enemy max health
+			"enemyName":     currentEnemy.Name,      // Include enemy name
 		}
 	default:
 		http.Error(w, "Invalid action", http.StatusBadRequest)

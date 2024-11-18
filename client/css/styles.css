@@ -188,6 +188,44 @@ body {
 .custom-tooltip.fade-in {
     animation: fadeIn 0.3s ease-in-out forwards;
 }
+.bar {
+    background-color: #ddd;
+    width: 100%;
+    height: 20px;
+    border-radius: 10px;
+    overflow: hidden;
+    margin: 5px 0;
+    position: relative;
+}
+
+.bar-fill {
+    height: 100%;
+    transition: width 0.3s ease;
+    border-radius: 10px;
+    text-align: center;
+    line-height: 20px;
+    font-size: 14px;
+    font-weight: bold;
+    color: white;
+}
+
+.health-bar .bar-fill {
+    background-color: #e74c3c; /* Red for health */
+}
+
+.mana-bar .bar-fill {
+    background-color: #3498db; /* Blue for mana */
+}
+
+/* Critical Health */
+.bar-fill.low-health {
+    background-color: #c0392b !important; /* Darker red */
+}
+
+/* Low Mana */
+.bar-fill.low-mana {
+    background-color: #2c3e50 !important; /* Dark blue */
+}
 
 @keyframes fadeIn {
     0% {

@@ -250,15 +250,82 @@ $(document).ready(function () {
       requestData.cardId = cardId;
     }
 
-    $.ajax({
-      url: "http://localhost:8080/start-combat",
-      type: "POST",
-      contentType: "application/json",
-      data: JSON.stringify(requestData),
-      success: function (response) {
-        updateCombatLog(response.result);
-        updateHPDisplay(response.playerHP, response.enemyHP);
-        updateManaDisplay(response.playerMana);
+   $.ajax({
+    url: "http://localhost:8080/start-combat",
+    type: "POST",
+    contentType: "application/json",
+    data: JSON.stringify(requestData),
+    success: function (response) {
+       if(response.result == "fight started")
+        {
+           $("#combat-info").show(); 
+            playerData.health = response.playerHP;
+        playerData.maxHealth = response.playerMaxHP;
+        playerData.mana = response.playerMana;
+        playerData.maxMana = response.playerMaxMana;
+
+        currentEnemy = {
+            name: response.enemyName,
+            health: response.enemyHP,
+            maxHealth: response.enemyMaxHP,
+        };
+        updateBars(
+            response.playerHP, 
+            response.playerMaxHP, 
+            response.playerMana, 
+            response.playerMaxMana, 
+            response.enemyHP, 
+            response.enemyMaxHP
+        ); 
+        }
+        else
+        {
+updateCombatLog(response.result);
+        updateBars(
+            response.playerHP, 
+            response.playerMaxHP, 
+            response.playerMana, 
+            response.playerMaxMana, 
+            response.enemyHP, 
+            response.enemyMaxHP
+        );
+        updateBarStyles();
+        
+        // Calculate and display floating text for player health changes
+        if (response.playerHP !== playerData.health) {
+            const deltaHP = response.playerHP - playerData.health;
+            const playerBarOffset = $('#player-hp-bar').offset();
+            showFloatingText(
+                deltaHP > 0 ? `+${deltaHP}` : `${deltaHP}`,
+                playerBarOffset.left + 50, // Adjust offset for proper positioning
+                playerBarOffset.top - 10,
+                deltaHP > 0 ? 'green' : 'red'
+            );
+        }
+
+        // Calculate and display floating text for player mana changes
+        if (response.playerMana !== playerData.mana) {
+            const deltaMana = response.playerMana - playerData.mana;
+            const playerManaOffset = $('#player-mana-bar').offset();
+            showFloatingText(
+                deltaMana > 0 ? `+${deltaMana}` : `${deltaMana}`,
+                playerManaOffset.left + 50, // Adjust offset for proper positioning
+                playerManaOffset.top - 10,
+                deltaMana > 0 ? 'blue' : 'orange'
+            );
+        }
+
+        // Calculate and display floating text for enemy health changes
+        if (response.enemyHP !== currentEnemy.health) {
+            const deltaEnemyHP = response.enemyHP - currentEnemy.health;
+            const enemyBarOffset = $('#enemy-hp-bar').offset();
+            showFloatingText(
+                deltaEnemyHP > 0 ? `+${deltaEnemyHP}` : `${deltaEnemyHP}`,
+                enemyBarOffset.left + 50, // Adjust offset for proper positioning
+                enemyBarOffset.top - 10,
+                deltaEnemyHP > 0 ? 'green' : 'red'
+            );
+        }
 
         if (response.combatOver) {
           combatInProgress = false;
@@ -267,13 +334,36 @@ $(document).ready(function () {
             true
           );
           $("#combat-hand").hide();
+          $("#combat-info").hide();
           alert("Combat has ended!");
         }
-      },
-      error: function (xhr, status, error) {
-        console.error("Error processing combat round:", status, error);
-      },
-    });
+        else
+        {
+          $("#combat-info").show();
+        }
+
+        // Update player and enemy data locally
+        playerData.health = response.playerHP;
+        playerData.maxHealth = response.playerMaxHP;
+        playerData.mana = response.playerMana;
+        playerData.maxMana = response.playerMaxMana;
+
+        currentEnemy = {
+            name: response.enemyName,
+            health: response.enemyHP,
+            maxHealth: response.enemyMaxHP,
+        };
+
+        }
+        
+        
+    },
+    error: function (xhr, status, error) {
+        console.error("Error during combat round:", status, error);
+        alert("Something went wrong during the combat round.");
+    }
+});
+ 
   }
 
   function getSelectedCardId() {
@@ -293,7 +383,51 @@ $(document).ready(function () {
   function updateManaDisplay(playerMana) {
     $("#mana-display").text(playerMana);
   }
+  function updateBars(playerHP, playerMaxHP, playerMana, playerMaxMana, enemyHP, enemyMaxHP) {
+   
+    $("#health-display").text(`${playerHP} / ${playerMaxHP}`);
+    $("#mana-display").text(`${playerMana} / ${playerMaxMana}`); 
 
+    // Update Player HP bar
+    const playerHPPercent = Math.max((playerHP / playerMaxHP) * 100, 0); // Ensure no negative percentage
+    $('#player-hp-bar').css('width', playerHPPercent + '%').text(`${playerHP} / ${playerMaxHP}`);
+    
+    // Update Player Mana bar
+    const playerManaPercent = Math.max((playerMana / playerMaxMana) * 100, 0);
+    $('#player-mana-bar').css('width', playerManaPercent + '%').text(`${playerMana} / ${playerMaxMana}`);
+
+    // Update Enemy HP bar
+    const enemyHPPercent = Math.max((enemyHP / enemyMaxHP) * 100, 0);
+    $('#enemy-hp-bar').css('width', enemyHPPercent + '%').text(`${enemyHP} / ${enemyMaxHP}`);
+  }
+  function showFloatingText(text, x, y, color = 'red') {
+    const floatingText = $('<div></div>')
+        .addClass('floating-text')
+        .text(text)
+        .css({ color, left: x, top: y, position: 'absolute', zIndex: 1000 });
+    $('body').append(floatingText);
+
+    floatingText.animate({ top: y - 50, opacity: 0 }, 1000, function () {
+        floatingText.remove();
+    });
+}
+  function updateBarStyles() {
+    // Player Health
+    const playerHPBar = $('#player-hp-bar');
+    if (parseFloat(playerHPBar.css('width')) / playerHPBar.parent().width() < 0.25) {
+        playerHPBar.addClass('low-health');
+    } else {
+        playerHPBar.removeClass('low-health');
+    }
+
+    // Player Mana
+    const playerManaBar = $('#player-mana-bar');
+    if (parseFloat(playerManaBar.css('width')) / playerManaBar.parent().width() < 0.25) {
+        playerManaBar.addClass('low-mana');
+    } else {
+        playerManaBar.removeClass('low-mana');
+    }
+}
   function getCardById(id) {
     const cards = [
       { id: 1, name: "Fireball", damage: 10, manaCost: 5 },
